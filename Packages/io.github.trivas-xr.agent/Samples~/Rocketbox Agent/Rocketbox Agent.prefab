@@ -253,6 +253,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 4ec12e3a61cc76247bb94c1d8d0304de, type: 3}
       insertIndex: -1
       addedObject: {fileID: 3412827407238349492}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 4ec12e3a61cc76247bb94c1d8d0304de, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 354325704025165068}
   m_SourcePrefab: {fileID: 100100000, guid: 4ec12e3a61cc76247bb94c1d8d0304de, type: 3}
 --- !u!1 &4353561291655833123 stripped
 GameObject:
@@ -299,7 +302,8 @@ MonoBehaviour:
   EyeGazeSmoothTime: 0.1
   HeadLookWeight: 0.5
   HeadGazeSmoothTime: 0.35
-  HeadLookOffset: {x: 0, y: 0, z: 0}
+  MaxHeadYaw: 60
+  MaxHeadPitch: 30
   ThinkingGazeAngles: {x: -20, y: 15}
   RelaxedSmoothTimeMultiplier: 2
 --- !u!114 &41731542412212873
@@ -433,6 +437,27 @@ MonoBehaviour:
   m_EditorClassIdentifier: XAICompanion::XAICompanion.Agent.LipSyncAudioBinding
   AudioPlayback: {fileID: 0}
   LipSync: {fileID: 8929328546484262918}
+--- !u!114 &354325704025165068
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4353561291655833123}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ce6463be286db1043b1126a089a87bbc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: TrIVA::TrIVA.Agent.FootPlanter
+  Weight: 1
+  StepThreshold: 0.06
+  StepDuration: 0.35
+  StepHeight: 0.04
+  LiftThreshold: 0.04
+  PlantSpeed: 0.15
+  ResetDistance: 0.5
+  BodyFollow: 1
+  MaxBodyOffset: 0.15
 --- !u!4 &5376108721148425321 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 8804637712421891867, guid: 4ec12e3a61cc76247bb94c1d8d0304de, type: 3}

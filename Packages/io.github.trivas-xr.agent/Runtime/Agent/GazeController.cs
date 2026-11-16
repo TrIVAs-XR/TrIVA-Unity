@@ -10,7 +10,7 @@ namespace TrIVA.Agent
     public enum GazeMode { Idle, LookAtUser, LookAtTarget, Thinking }
 
     /// <summary>
-    /// Directs the agent's gaze by writing the eye blendshapes and turning the head through Animator look-at IK.
+    /// Directs the agent's gaze by writing the eye blendshapes and turning chest, neck and head toward the gaze on top of the animated pose.
     /// </summary>
     [DefaultExecutionOrder(100)]
     [RequireComponent(typeof(Animator))]
@@ -35,10 +35,11 @@ namespace TrIVA.Agent
         [SerializeField, Range(0, 100)] private float EyeBlendshapeStrength = 100f;
         [SerializeField, Tooltip("Seconds the eyes take to roughly reach a new gaze direction.")] private float EyeGazeSmoothTime = 0.1f;
 
-        [Header("Head Gaze (IK)")]
+        [Header("Head Gaze")]
         [SerializeField, Range(0, 1)] private float HeadLookWeight = 0.5f;
         [SerializeField, Tooltip("Seconds the head takes to roughly reach a new gaze direction.")] private float HeadGazeSmoothTime = 0.35f;
-        [SerializeField] private Vector3 HeadLookOffset = Vector3.zero;
+        [SerializeField, Range(0, 90), Tooltip("Largest additive turn left or right in degrees, before Head Look Weight.")] private float MaxHeadYaw = 60f;
+        [SerializeField, Range(0, 90), Tooltip("Largest additive turn up or down in degrees, before Head Look Weight.")] private float MaxHeadPitch = 30f;
 
         [Header("Thinking")]
         // Look-away direction relative to the agent's forward in degrees: x is yaw (negative turns to the agent's left), y is pitch (positive looks up).
@@ -52,12 +53,13 @@ namespace TrIVA.Agent
         private Transform _eyeBoneL;
         private Transform _eyeBoneR;
         private Quaternion _headRestOffset = Quaternion.identity;
+        private Transform[] _additiveBones = Array.Empty<Transform>();
+        private float[] _additiveShares = Array.Empty<float>();
 
         private Vector3 _eyeGazeDirection;
         private Vector3 _headGazeDirection;
         private float _eyeAngularVelocity;
         private float _headAngularVelocity;
-        private Vector3 _headLookAtPosition;
         private Transform _lookTarget;
         private Vector3 _lookTargetPoint;
 
@@ -83,6 +85,7 @@ namespace TrIVA.Agent
                 _headBone = _animator.GetBoneTransform(HumanBodyBones.Head);
                 _eyeBoneL = _animator.GetBoneTransform(HumanBodyBones.LeftEye);
                 _eyeBoneR = _animator.GetBoneTransform(HumanBodyBones.RightEye);
+                InitAdditiveBones();
             }
 
             if (_headBone)
@@ -102,7 +105,6 @@ namespace TrIVA.Agent
             }
 
             _eyeGazeDirection = _headGazeDirection = HeadRotation * Vector3.forward;
-            _headLookAtPosition = GetEyeCenterPosition() + _headGazeDirection * 10f;
             _lookTargetPoint = GetEyeCenterPosition() + _headGazeDirection * 2f;
         }
 
@@ -113,24 +115,15 @@ namespace TrIVA.Agent
 
             _eyeGazeDirection = SmoothDampDirection(_eyeGazeDirection, targetDirection, ref _eyeAngularVelocity, EyeGazeSmoothTime * multiplier);
             _headGazeDirection = SmoothDampDirection(_headGazeDirection, targetDirection, ref _headAngularVelocity, HeadGazeSmoothTime * multiplier);
-
-            if (EnableHeadGaze)
-                _headLookAtPosition = _headBone.position + _headGazeDirection * 100f + HeadLookOffset;
         }
 
         private void LateUpdate()
         {
+            if (EnableHeadGaze)
+                ApplyAdditiveHeadGaze(_headGazeDirection);
+
             if (EnableEyeGaze)
                 ApplyGazeToBlendshapes(_eyeGazeDirection);
-        }
-
-        private void OnAnimatorIK(int layerIndex)
-        {
-            if (!EnableHeadGaze)
-                return;
-
-            _animator.SetLookAtWeight(HeadLookWeight, 0.3f, 1f, 0f, 0.5f);
-            _animator.SetLookAtPosition(_headLookAtPosition);
         }
 
         private void OnDrawGizmos()
@@ -279,6 +272,55 @@ namespace TrIVA.Agent
             if (_headBone)
                 return _headBone.position + HeadRotation * Vector3.up * 0.1f;
             return transform.position + transform.up * 1.6f;
+        }
+
+        /// <summary>
+        /// Collects the chest, neck and head bones the additive head gaze turns, with each one's share of the turn, skipping bones the rig lacks.
+        /// </summary>
+        private void InitAdditiveBones()
+        {
+            HumanBodyBones[] bones = { HumanBodyBones.Chest, HumanBodyBones.Neck, HumanBodyBones.Head };
+            float[] shares = { 0.2f, 0.3f, 0.5f };
+            Transform[] found = new Transform[bones.Length];
+            int count = 0;
+            float total = 0f;
+            for (int i = 0; i < bones.Length; i++)
+            {
+                found[i] = _animator.GetBoneTransform(bones[i]);
+                if (!found[i])
+                    continue;
+                count++;
+                total += shares[i];
+            }
+
+            _additiveBones = new Transform[count];
+            _additiveShares = new float[count];
+            int next = 0;
+            for (int i = 0; i < bones.Length; i++)
+            {
+                if (!found[i])
+                    continue;
+                _additiveBones[next] = found[i];
+                _additiveShares[next] = shares[i] / total;
+                next++;
+            }
+        }
+
+        /// <summary>
+        /// Turns chest, neck and head toward the gaze direction relative to the agent's forward, on top of whatever the animation does with them.
+        /// </summary>
+        private void ApplyAdditiveHeadGaze(Vector3 gazeDirection)
+        {
+            Vector3 local = Quaternion.Inverse(transform.rotation) * gazeDirection;
+            float yaw = Mathf.Clamp(Mathf.Atan2(local.x, local.z) * Mathf.Rad2Deg, -MaxHeadYaw, MaxHeadYaw) * HeadLookWeight;
+            float pitch = Mathf.Clamp(-Mathf.Asin(Mathf.Clamp(local.y, -1f, 1f)) * Mathf.Rad2Deg, -MaxHeadPitch, MaxHeadPitch) * HeadLookWeight;
+
+            for (int i = 0; i < _additiveBones.Length; i++)
+            {
+                float share = _additiveShares[i];
+                Quaternion turn = transform.rotation * Quaternion.Euler(pitch * share, yaw * share, 0f) * Quaternion.Inverse(transform.rotation);
+                _additiveBones[i].rotation = turn * _additiveBones[i].rotation;
+            }
         }
 
         /// <summary>
