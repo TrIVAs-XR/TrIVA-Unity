@@ -62,9 +62,9 @@ The agent code inside `Packages/io.github.trivas-xr.agent/`:
 | `Tests/` | PlayMode tests against a fake RTVI backend |
 | `Samples~/` | Source of the Rocketbox Agent sample; hidden from Unity until imported |
 
-## LiveKit fork
+## LiveKit pin
 
-LiveKit is pinned in `Packages/manifest.json` to [a fork](https://github.com/MirCore/client-sdk-unity) with a fix for entering Play mode without a domain reload ([livekit/client-sdk-unity#396](https://github.com/livekit/client-sdk-unity/pull/396)), until that fix is merged upstream.
+LiveKit is pinned in `Packages/manifest.json` to an upstream `main` commit that includes the fix for entering Play mode without a domain reload ([livekit/client-sdk-unity#396](https://github.com/livekit/client-sdk-unity/pull/396)), until a release includes that fix.
 
 ## Using the agent in another Unity project
 
