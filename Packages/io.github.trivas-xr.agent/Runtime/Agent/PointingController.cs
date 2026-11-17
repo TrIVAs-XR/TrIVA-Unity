@@ -35,8 +35,6 @@ namespace TrIVA.Agent
         [SerializeField, Tooltip("Float parameter of the blend tree that picks the clips by horizontal direction, in degrees with positive to the agent's right for the unmirrored arm.")] private string DirectionParameter = "PointYaw";
         [SerializeField] private string MirrorParameter = "PointMirror";
         [SerializeField] private string SpeedParameter = "PointSpeed";
-        [SerializeField, Tooltip("Float parameter that picks the gesture style: 0 points with the index finger, 1 gestures with an open hand.")] private string StyleParameter = "PointStyle";
-        [SerializeField, Range(0, 1), Tooltip("Chance that a gesture uses the open-hand style instead of pointing.")] private float OpenHandChance = 0.5f;
         [SerializeField, Tooltip("Freezes the gesture at its peak for the duration PointAt is given; when off, the clip always plays through at its own pace.")] private bool HoldAtPeak;
         [SerializeField, Range(0, 1), Tooltip("Normalized time of the pointing state at which every clip is at its peak, where Hold At Peak freezes it.")] private float HoldAt = 0.4f;
         [SerializeField, Tooltip("Smallest and largest direction in degrees the blend tree covers.")] private Vector2 DirectionRange = new(-55f, 65f);
@@ -278,7 +276,7 @@ namespace TrIVA.Agent
         }
 
         /// <summary>
-        /// Sets the arm, direction and a random style for the target and triggers the pointing state.
+        /// Sets the arm and direction for the target and triggers the pointing state.
         /// </summary>
         private void Begin(Transform target, float duration)
         {
@@ -294,7 +292,6 @@ namespace TrIVA.Agent
             _animator.SetBool(MirrorParameter, _arm.Mirrored);
             _animator.SetFloat(DirectionParameter, DirectionFor(_targetPoint));
             _animator.SetFloat(SpeedParameter, 1f);
-            _animator.SetFloat(StyleParameter, UnityEngine.Random.value < OpenHandChance ? 1f : 0f);
             _animator.SetTrigger(TriggerParameter);
         }
 
@@ -377,16 +374,17 @@ namespace TrIVA.Agent
         }
 
         /// <summary>
-        /// Turns the upper arm so the pointing line passes through the target, limited to a natural correction; repeats once because the turn also moves the line.
+        /// Turns the upper arm about the shoulder so the point the pointing line reaches at the target's distance lands on the target, limited to a natural correction; repeats because the turn also moves the line, which matters for targets close to the hand.
         /// </summary>
         private void CorrectArm(float weight)
         {
             Quaternion animated = _arm.UpperArm.rotation;
-            for (int i = 0; i < 2; i++)
+            for (int i = 0; i < 3; i++)
             {
+                Vector3 shoulder = _arm.UpperArm.position;
                 Vector3 pointerBase = _arm.PointerBase.position;
-                Quaternion turn = Quaternion.FromToRotation(_arm.PointerTip.position - pointerBase, _targetPoint - pointerBase);
-                _arm.UpperArm.rotation = turn * _arm.UpperArm.rotation;
+                Vector3 reached = pointerBase + (_arm.PointerTip.position - pointerBase).normalized * Vector3.Distance(pointerBase, _targetPoint);
+                _arm.UpperArm.rotation = Quaternion.FromToRotation(reached - shoulder, _targetPoint - shoulder) * _arm.UpperArm.rotation;
             }
 
             Quaternion corrected = Quaternion.RotateTowards(animated, _arm.UpperArm.rotation, MaxArmCorrection);
@@ -443,7 +441,7 @@ namespace TrIVA.Agent
                     return $"state '{state}' on layer '{LayerName}'";
             }
 
-            string[] required = { TriggerParameter, DirectionParameter, MirrorParameter, SpeedParameter, StyleParameter };
+            string[] required = { TriggerParameter, DirectionParameter, MirrorParameter, SpeedParameter };
             foreach (string parameter in required)
             {
                 if (Array.FindIndex(_animator.parameters, existing => existing.name == parameter) < 0)

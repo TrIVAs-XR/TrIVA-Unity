@@ -51,7 +51,7 @@ The agent code inside `Packages/io.github.trivas-xr.agent/`:
 | Folder | Contents |
 |---|---|
 | `Runtime/Connection/` | LiveKit connection with retry, agent audio playback, microphone publishing with push-to-talk and mute, the RTVI message channel |
-| `Runtime/Agent/` | Agent state machine, behaviour driver (animation and gaze), blinking, lip sync binding, face rig profile, random animation variants |
+| `Runtime/Agent/` | Agent state machine, behaviour driver (animation and gaze), blinking, lip sync binding, face rig profile, random animation variants, foot planting, looking and pointing at scene targets |
 | `Runtime/Debugging/` | World-space debug panel and an Editor-only recorder for RTVI messages |
 | `Runtime/UI/` | Layout, theme and fonts of the debug panel |
 | `Runtime/Utils/` | Inspector button attribute and a singleton base class |
@@ -61,6 +61,23 @@ The agent code inside `Packages/io.github.trivas-xr.agent/`:
 | `Editor/` | Inspector buttons and the additive scene opener |
 | `Tests/` | PlayMode tests against a fake RTVI backend |
 | `Samples~/` | Source of the Rocketbox Agent sample; hidden from Unity until imported |
+
+## Looking and pointing
+
+The agent can refer to objects in the scene by looking at them, pointing at them, or both.
+
+- **`AgentTarget`** marks an object the agent can refer to. It has an ID to refer to it by, and optional anchors for the points the agent looks and points at.
+- **`ReferenceController`** sits on the agent and makes it refer to a target with `Refer(target, look, point, duration)`. In Play mode, its **Refer** button refers to a random target and each target's **Agent Refers Here** button to that one.
+- **`GazeController`** turns eyes and head to the target while the agent looks at it, then hands the gaze back to the agent's state.
+- **`PointingController`** plays a pointing clip toward the target and turns torso, wrist and arm on top of it so the index finger lines up with the target. Targets far to the left are pointed at with the mirrored left arm; targets too far to the side or behind the agent are not pointed at.
+
+`PointingController` needs a Humanoid avatar and these in the agent's animator controller, under the default names that its Inspector can change:
+
+- A layer `Pointing` with an empty default state `Idle` and a state `Point`. `Idle` goes to `Point` on the trigger, and `Point` returns to `Idle` at its exit time.
+- A trigger `Point`, a float `PointYaw`, a bool `PointMirror` and a float `PointSpeed` (default 1).
+- `Point`'s motion is a pointing clip of the right arm, or a blend tree over `PointYaw` with clips pointing in several directions (degrees, positive to the agent's right). The state's Mirror parameter is `PointMirror` and its Speed multiplier is `PointSpeed`.
+
+The Rocketbox Agent sample points with a single clip and lets the corrections do the aiming.
 
 ## LiveKit pin
 
