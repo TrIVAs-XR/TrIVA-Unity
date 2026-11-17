@@ -10,7 +10,7 @@ namespace TrIVA.Agent
     public enum GazeMode { Idle, LookAtUser, LookAtTarget, Thinking }
 
     /// <summary>
-    /// Directs the agent's gaze by writing the eye blendshapes and turning chest, neck and head toward the gaze on top of the animated pose.
+    /// Directs the agent's gaze by writing the eye blendshapes and turning chest, neck and head so the head faces part of the way toward the gaze, whatever direction the animation gave it.
     /// </summary>
     [DefaultExecutionOrder(100)]
     [RequireComponent(typeof(Animator))]
@@ -24,7 +24,7 @@ namespace TrIVA.Agent
         [Header("Behaviours")]
         [SerializeField] private bool EnableEyeGaze = true;
         [SerializeField] private bool EnableHeadGaze = true;
-        [SerializeField] private bool DrawGazeDebugRay;
+        [SerializeField, Tooltip("Draws gizmo rays in Play mode: where the eyes look after their angle limits (green) and where the head faces (cyan).")] private bool DrawGazeDebugRay;
 
         [Header("Mode")]
         [SerializeField] private GazeMode Mode = GazeMode.Idle;
@@ -38,8 +38,8 @@ namespace TrIVA.Agent
         [Header("Head Gaze")]
         [SerializeField, Range(0, 1)] private float HeadLookWeight = 0.5f;
         [SerializeField, Tooltip("Seconds the head takes to roughly reach a new gaze direction.")] private float HeadGazeSmoothTime = 0.35f;
-        [SerializeField, Range(0, 90), Tooltip("Largest additive turn left or right in degrees, before Head Look Weight.")] private float MaxHeadYaw = 60f;
-        [SerializeField, Range(0, 90), Tooltip("Largest additive turn up or down in degrees, before Head Look Weight.")] private float MaxHeadPitch = 30f;
+        [SerializeField, Range(0, 90), Tooltip("Largest head direction left or right of the agent's forward in degrees, before Head Look Weight.")] private float MaxHeadYaw = 60f;
+        [SerializeField, Range(0, 90), Tooltip("Largest head direction up or down from the agent's forward in degrees, before Head Look Weight.")] private float MaxHeadPitch = 30f;
 
         [Header("Thinking")]
         // Look-away direction relative to the agent's forward in degrees: x is yaw (negative turns to the agent's left), y is pitch (positive looks up).
@@ -53,15 +53,19 @@ namespace TrIVA.Agent
         private Transform _eyeBoneL;
         private Transform _eyeBoneR;
         private Quaternion _headRestOffset = Quaternion.identity;
-        private Transform[] _additiveBones = Array.Empty<Transform>();
-        private float[] _additiveShares = Array.Empty<float>();
+        private BoneChain _headChain;
 
         private Vector3 _eyeGazeDirection;
         private Vector3 _headGazeDirection;
+        private float _eyeAngleH;
+        private float _eyeAngleV;
         private float _eyeAngularVelocity;
         private float _headAngularVelocity;
         private Transform _lookTarget;
         private Vector3 _lookTargetPoint;
+        private bool _focused;
+        private Transform _focusTarget;
+        private Vector3 _focusPoint;
 
         private int _eyeLLookLIndex = -1, _eyeRLookLIndex = -1, _eyeLLookRIndex = -1, _eyeRLookRIndex = -1;
         private int _eyeLLookUpIndex = -1, _eyeRLookUpIndex = -1, _eyeLLookDownIndex = -1, _eyeRLookDownIndex = -1;
@@ -85,7 +89,7 @@ namespace TrIVA.Agent
                 _headBone = _animator.GetBoneTransform(HumanBodyBones.Head);
                 _eyeBoneL = _animator.GetBoneTransform(HumanBodyBones.LeftEye);
                 _eyeBoneR = _animator.GetBoneTransform(HumanBodyBones.RightEye);
-                InitAdditiveBones();
+                _headChain = new BoneChain(_animator, new[] { HumanBodyBones.Chest, HumanBodyBones.Neck, HumanBodyBones.Head }, new[] { 0.2f, 0.3f, 0.5f });
             }
 
             if (_headBone)
@@ -111,7 +115,7 @@ namespace TrIVA.Agent
         private void Update()
         {
             Vector3 targetDirection = GetTargetGazeDirection();
-            float multiplier = Mode is GazeMode.Idle or GazeMode.Thinking ? RelaxedSmoothTimeMultiplier : 1f;
+            float multiplier = !_focused && Mode is GazeMode.Idle or GazeMode.Thinking ? RelaxedSmoothTimeMultiplier : 1f;
 
             _eyeGazeDirection = SmoothDampDirection(_eyeGazeDirection, targetDirection, ref _eyeAngularVelocity, EyeGazeSmoothTime * multiplier);
             _headGazeDirection = SmoothDampDirection(_headGazeDirection, targetDirection, ref _headAngularVelocity, HeadGazeSmoothTime * multiplier);
@@ -131,8 +135,11 @@ namespace TrIVA.Agent
             if (!DrawGazeDebugRay || !Application.isPlaying)
                 return;
 
+            Vector3 eyes = GetEyeCenterPosition();
             Gizmos.color = Color.green;
-            Gizmos.DrawRay(GetEyeCenterPosition(), _eyeGazeDirection * 0.5f);
+            Gizmos.DrawRay(eyes, HeadRotation * Quaternion.Euler(-_eyeAngleV, _eyeAngleH, 0f) * Vector3.forward * 2f);
+            Gizmos.color = Color.cyan;
+            Gizmos.DrawRay(eyes, HeadRotation * Vector3.forward * 2f);
         }
 
         /// <summary>
@@ -163,6 +170,27 @@ namespace TrIVA.Agent
         }
 
         /// <summary>
+        /// Makes the agent look at an object whatever the gaze mode, until ReleaseFocus hands the gaze back to the mode.
+        /// </summary>
+        public void Focus(Transform target)
+        {
+            if (!target)
+                return;
+            _focusTarget = target;
+            _focusPoint = target.position;
+            _focused = true;
+        }
+
+        /// <summary>
+        /// Ends the focus so the gaze mode, which kept following the agent's state meanwhile, applies again.
+        /// </summary>
+        public void ReleaseFocus()
+        {
+            _focused = false;
+            _focusTarget = null;
+        }
+
+        /// <summary>
         /// Inspector button that switches to Idle.
         /// </summary>
         [Button("Idle", PlayModeOnly = true)]
@@ -190,6 +218,13 @@ namespace TrIVA.Agent
         /// </summary>
         private Vector3 GetTargetGazeDirection()
         {
+            if (_focused)
+            {
+                if (_focusTarget)
+                    _focusPoint = _focusTarget.position;
+                return DirectionFromEyes(_focusPoint);
+            }
+
             switch (Mode)
             {
                 case GazeMode.Idle:
@@ -275,53 +310,27 @@ namespace TrIVA.Agent
         }
 
         /// <summary>
-        /// Collects the chest, neck and head bones the additive head gaze turns, with each one's share of the turn, skipping bones the rig lacks.
-        /// </summary>
-        private void InitAdditiveBones()
-        {
-            HumanBodyBones[] bones = { HumanBodyBones.Chest, HumanBodyBones.Neck, HumanBodyBones.Head };
-            float[] shares = { 0.2f, 0.3f, 0.5f };
-            Transform[] found = new Transform[bones.Length];
-            int count = 0;
-            float total = 0f;
-            for (int i = 0; i < bones.Length; i++)
-            {
-                found[i] = _animator.GetBoneTransform(bones[i]);
-                if (!found[i])
-                    continue;
-                count++;
-                total += shares[i];
-            }
-
-            _additiveBones = new Transform[count];
-            _additiveShares = new float[count];
-            int next = 0;
-            for (int i = 0; i < bones.Length; i++)
-            {
-                if (!found[i])
-                    continue;
-                _additiveBones[next] = found[i];
-                _additiveShares[next] = shares[i] / total;
-                next++;
-            }
-        }
-
-        /// <summary>
-        /// Turns chest, neck and head toward the gaze direction relative to the agent's forward, on top of whatever the animation does with them.
+        /// Turns chest, neck and head by the difference between where the head faces after animation and earlier scripts and where the gaze wants it, so turns from elsewhere are not added on top.
         /// </summary>
         private void ApplyAdditiveHeadGaze(Vector3 gazeDirection)
         {
-            Vector3 local = Quaternion.Inverse(transform.rotation) * gazeDirection;
-            float yaw = Mathf.Clamp(Mathf.Atan2(local.x, local.z) * Mathf.Rad2Deg, -MaxHeadYaw, MaxHeadYaw) * HeadLookWeight;
-            float pitch = Mathf.Clamp(-Mathf.Asin(Mathf.Clamp(local.y, -1f, 1f)) * Mathf.Rad2Deg, -MaxHeadPitch, MaxHeadPitch) * HeadLookWeight;
-
-            for (int i = 0; i < _additiveBones.Length; i++)
-            {
-                float share = _additiveShares[i];
-                Quaternion turn = transform.rotation * Quaternion.Euler(pitch * share, yaw * share, 0f) * Quaternion.Inverse(transform.rotation);
-                _additiveBones[i].rotation = turn * _additiveBones[i].rotation;
-            }
+            Quaternion toLocal = Quaternion.Inverse(transform.rotation);
+            Vector3 wanted = toLocal * gazeDirection;
+            Vector3 facing = toLocal * (HeadRotation * Vector3.forward);
+            float wantedYaw = Mathf.Clamp(Yaw(wanted), -MaxHeadYaw, MaxHeadYaw) * HeadLookWeight;
+            float wantedPitch = Mathf.Clamp(Pitch(wanted), -MaxHeadPitch, MaxHeadPitch) * HeadLookWeight;
+            _headChain.Turn(transform.rotation, wantedPitch - Pitch(facing), wantedYaw - Yaw(facing));
         }
+
+        /// <summary>
+        /// Horizontal angle in degrees of a direction in a local space, positive to the right.
+        /// </summary>
+        private static float Yaw(Vector3 local) => Mathf.Atan2(local.x, local.z) * Mathf.Rad2Deg;
+
+        /// <summary>
+        /// Vertical angle in degrees of a direction in a local space, positive downward.
+        /// </summary>
+        private static float Pitch(Vector3 local) => -Mathf.Asin(Mathf.Clamp(local.normalized.y, -1f, 1f)) * Mathf.Rad2Deg;
 
         /// <summary>
         /// Converts the gaze direction into head-relative angles and writes them to the eye look blendshapes.
@@ -329,8 +338,10 @@ namespace TrIVA.Agent
         private void ApplyGazeToBlendshapes(Vector3 gazeDirection)
         {
             Vector3 local = Quaternion.Inverse(HeadRotation) * gazeDirection;
-            float h = Mathf.Clamp(Mathf.Atan2(local.x, local.z) * Mathf.Rad2Deg, -MaxEyeAngleH, MaxEyeAngleH);
-            float v = Mathf.Clamp(Mathf.Asin(Mathf.Clamp(local.y, -1f, 1f)) * Mathf.Rad2Deg, -MaxEyeAngleV, MaxEyeAngleV);
+            float h = Mathf.Clamp(Yaw(local), -MaxEyeAngleH, MaxEyeAngleH);
+            float v = Mathf.Clamp(-Pitch(local), -MaxEyeAngleV, MaxEyeAngleV);
+            _eyeAngleH = h;
+            _eyeAngleV = v;
 
             float left = Mathf.Max(0f, -h) / MaxEyeAngleH * EyeBlendshapeStrength;
             float right = Mathf.Max(0f, h) / MaxEyeAngleH * EyeBlendshapeStrength;
