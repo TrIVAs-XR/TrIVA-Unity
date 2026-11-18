@@ -47,12 +47,19 @@
                         </engine:VisualElement>
                         <engine:ScrollView name="transcript-scroll-view" mode="Vertical" class="dbg-list"/>
                     </engine:Tab>
-                    <engine:Tab name="feed-tab" label="RTVI feed">
+                    <engine:Tab name="feed-tab" label="RTVI in">
                         <engine:VisualElement class="dbg-toolbar">
                             <engine:Button name="feed-pause-button" text="Pause" class="dbg-button"/>
                             <engine:Button name="feed-clear-button" text="Clear" class="dbg-button"/>
                         </engine:VisualElement>
                         <engine:ScrollView name="message-feed-scroll-view" mode="Vertical" class="dbg-list"/>
+                    </engine:Tab>
+                    <engine:Tab name="outbound-tab" label="RTVI out">
+                        <engine:VisualElement class="dbg-toolbar">
+                            <engine:Button name="outbound-pause-button" text="Pause" class="dbg-button"/>
+                            <engine:Button name="outbound-clear-button" text="Clear" class="dbg-button"/>
+                        </engine:VisualElement>
+                        <engine:ScrollView name="outbound-scroll-view" mode="Vertical" class="dbg-list"/>
                     </engine:Tab>
                 </engine:TabView>
             </engine:Tab>

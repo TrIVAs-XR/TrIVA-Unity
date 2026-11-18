@@ -11,7 +11,7 @@ namespace TrIVA.Debugging
 {
     /// <summary>
     /// Drives the debug panel's LiveKit tab: connection, agent-speaking and audio-track status chips, a microphone
-    /// selector with input level meter and mute toggle, a manual disconnect control, and a timestamped transcript and raw RTVI feed.
+    /// selector with input level meter and mute toggle, a manual disconnect control, a timestamped transcript, and raw inbound and outbound RTVI feeds.
     /// </summary>
     [RequireComponent(typeof(UIDocument))]
     public class LiveKitDebugPanel : MonoBehaviour
@@ -45,6 +45,9 @@ namespace TrIVA.Debugging
         private const string FeedScrollViewName = "message-feed-scroll-view";
         private const string FeedPauseButtonName = "feed-pause-button";
         private const string FeedClearButtonName = "feed-clear-button";
+        private const string OutboundScrollViewName = "outbound-scroll-view";
+        private const string OutboundPauseButtonName = "outbound-pause-button";
+        private const string OutboundClearButtonName = "outbound-clear-button";
 
         private const string ChipOkClass = "dbg-chip--ok";
         private const string ChipErrorClass = "dbg-chip--error";
@@ -52,6 +55,7 @@ namespace TrIVA.Debugging
         private const string UserEntryClass = "dbg-entry--user";
         private const string AgentEntryClass = "dbg-entry--agent";
         private const string FeedEntryClass = "dbg-entry--feed";
+        private const string DroppedEntryClass = "dbg-entry--dropped";
         private const string FeedFieldSeparator = " · ";
         private const int NoMicLevel = int.MinValue;
 
@@ -73,6 +77,8 @@ namespace TrIVA.Debugging
         private Button _transcriptClearButton;
         private Button _feedPauseButton;
         private Button _feedClearButton;
+        private Button _outboundPauseButton;
+        private Button _outboundClearButton;
 
         private bool _botSpeaking;
         private bool _audioTrackSubscribed;
@@ -80,6 +86,7 @@ namespace TrIVA.Debugging
 
         private CappedLogList _transcript;
         private CappedLogList _feed;
+        private CappedLogList _outbound;
         private UIDocument _document;
         private Room _room;
 
@@ -88,6 +95,7 @@ namespace TrIVA.Debugging
             _document = GetComponent<UIDocument>();
             _transcript = new CappedLogList(_maxTranscriptLines);
             _feed = new CappedLogList(_maxFeedLines);
+            _outbound = new CappedLogList(_maxFeedLines);
         }
 
         private void OnEnable()
@@ -95,6 +103,8 @@ namespace TrIVA.Debugging
             _connector.Connected += OnConnected;
             _connector.Disconnected += OnConnectorDisconnected;
             _rtviClient.MessageReceived += OnMessageReceived;
+            _rtviClient.MessageSent += OnMessageSent;
+            _rtviClient.MessageDropped += OnMessageDropped;
 
             BindElements(_document.rootVisualElement);
         }
@@ -104,6 +114,8 @@ namespace TrIVA.Debugging
             _connector.Connected -= OnConnected;
             _connector.Disconnected -= OnConnectorDisconnected;
             _rtviClient.MessageReceived -= OnMessageReceived;
+            _rtviClient.MessageSent -= OnMessageSent;
+            _rtviClient.MessageDropped -= OnMessageDropped;
 
             if (_disconnectButton != null)
                 _disconnectButton.clicked -= OnDisconnectClicked;
@@ -120,8 +132,13 @@ namespace TrIVA.Debugging
                 _feedPauseButton.clicked -= OnFeedPauseClicked;
             if (_feedClearButton != null)
                 _feedClearButton.clicked -= OnFeedClearClicked;
+            if (_outboundPauseButton != null)
+                _outboundPauseButton.clicked -= OnOutboundPauseClicked;
+            if (_outboundClearButton != null)
+                _outboundClearButton.clicked -= OnOutboundClearClicked;
             _transcript.Unbind();
             _feed.Unbind();
+            _outbound.Unbind();
 
             UnsubscribeFromRoom();
         }
@@ -174,6 +191,8 @@ namespace TrIVA.Debugging
             _transcriptClearButton = rootElement.Q<Button>(TranscriptClearButtonName);
             _feedPauseButton = rootElement.Q<Button>(FeedPauseButtonName);
             _feedClearButton = rootElement.Q<Button>(FeedClearButtonName);
+            _outboundPauseButton = rootElement.Q<Button>(OutboundPauseButtonName);
+            _outboundClearButton = rootElement.Q<Button>(OutboundClearButtonName);
 
             _disconnectButton.clicked += OnDisconnectClicked;
             RefreshMicrophoneChoices();
@@ -185,10 +204,14 @@ namespace TrIVA.Debugging
             _feedPauseButton.clicked += OnFeedPauseClicked;
             _feedClearButton.clicked += OnFeedClearClicked;
             _feedPauseButton.text = _feed.Paused ? "Resume" : "Pause";
+            _outboundPauseButton.clicked += OnOutboundPauseClicked;
+            _outboundClearButton.clicked += OnOutboundClearClicked;
+            _outboundPauseButton.text = _outbound.Paused ? "Resume" : "Pause";
 
             _shownMicDb = int.MaxValue;
             _transcript.Bind(rootElement.Q<ScrollView>(TranscriptScrollViewName));
             _feed.Bind(rootElement.Q<ScrollView>(FeedScrollViewName));
+            _outbound.Bind(rootElement.Q<ScrollView>(OutboundScrollViewName));
             RefreshState();
         }
 
@@ -211,6 +234,17 @@ namespace TrIVA.Debugging
         private void OnFeedClearClicked()
         {
             _feed.Clear();
+        }
+
+        private void OnOutboundPauseClicked()
+        {
+            _outbound.Paused = !_outbound.Paused;
+            _outboundPauseButton.text = _outbound.Paused ? "Resume" : "Pause";
+        }
+
+        private void OnOutboundClearClicked()
+        {
+            _outbound.Clear();
         }
 
         /// <summary>
@@ -321,6 +355,23 @@ namespace TrIVA.Debugging
             }
 
             RefreshState();
+        }
+
+        /// <summary>
+        /// Logs every outbound RTVI message handed to the data channel to the outbound feed.
+        /// </summary>
+        private void OnMessageSent(string type, JObject data)
+        {
+            _outbound.Add(type, FormatFeedPayload(data), FeedEntryClass);
+        }
+
+        /// <summary>
+        /// Logs an outbound RTVI message that was dropped because no transport was open, marked as dropped in the outbound feed.
+        /// </summary>
+        private void OnMessageDropped(string type, JObject data)
+        {
+            string payload = FormatFeedPayload(data);
+            _outbound.Add(type, payload.Length == 0 ? "dropped" : $"dropped{FeedFieldSeparator}{payload}", DroppedEntryClass);
         }
 
         private void AppendTranscript(string speaker, string text, string entryClass)

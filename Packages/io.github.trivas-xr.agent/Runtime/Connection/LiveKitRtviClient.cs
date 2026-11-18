@@ -66,6 +66,11 @@ namespace TrIVA.Connection
         public event Action<string, JObject> MessageSent;
 
         /// <summary>
+        /// Raised for every outbound RTVI message dropped because the transport is not open, passing its type and data payload.
+        /// </summary>
+        public event Action<string, JObject> MessageDropped;
+
+        /// <summary>
         /// Raised when the transport closes, as when the LiveKit room disconnects; nothing can be sent until it opens again.
         /// </summary>
         public event Action Disconnected;
@@ -147,6 +152,7 @@ namespace TrIVA.Connection
             if (_publish == null)
             {
                 Debug.LogError("Cannot send RTVI message, the transport is not open.");
+                MessageDropped?.Invoke(type, data);
                 return;
             }
 
@@ -164,13 +170,17 @@ namespace TrIVA.Connection
         }
 
         /// <summary>
-        /// Sends a custom client message of the given type to the backend; while the transport is closed it is dropped without a log, so inputs can be sent whenever they change.
+        /// Sends a custom client message of the given type to the backend; while the transport is closed it is dropped silently, raising only MessageDropped.
         /// </summary>
         public void SendClientMessage(string type, JToken data)
         {
+            JObject message = new JObject { ["t"] = type, ["d"] = data };
             if (_publish == null)
+            {
+                MessageDropped?.Invoke(ClientMessageType, message);
                 return;
-            Send(ClientMessageType, new JObject { ["t"] = type, ["d"] = data });
+            }
+            Send(ClientMessageType, message);
         }
 
         /// <summary>

@@ -446,7 +446,8 @@
     font-size: var(--dbg-font-l);
 }
 
-.dbg-entry--feed {
+.dbg-entry--feed,
+.dbg-entry--dropped {
     flex-wrap: wrap;
 }
 
@@ -455,15 +456,28 @@
     color: var(--dbg-user);
 }
 
+.dbg-entry--dropped .dbg-entry__prefix {
+    -unity-font-style: normal;
+    color: var(--dbg-text-dim);
+}
+
 .dbg-entry--feed .dbg-entry__prefix,
-.dbg-entry--feed .dbg-entry__text {
+.dbg-entry--feed .dbg-entry__text,
+.dbg-entry--dropped .dbg-entry__prefix,
+.dbg-entry--dropped .dbg-entry__text {
     font-size: var(--dbg-font-s);
     -unity-font-definition: url("project://database/Packages/io.github.trivas-xr.agent/Runtime/UI/Fonts/JetBrainsMono-Regular.ttf?fileID=12800000&guid=3a305076ecab24a44a6a7b0bd9d9a1ea&type=3#JetBrainsMono-Regular");
 }
 
-.dbg-entry--feed .dbg-entry__text {
+.dbg-entry--feed .dbg-entry__text,
+.dbg-entry--dropped .dbg-entry__text {
     width: 100%;
     flex-shrink: 0;
     margin-top: 7px;
     color: var(--dbg-text-dim);
+}
+
+.dbg-entry--dropped .dbg-entry__marker {
+    display: flex;
+    background-color: var(--dbg-warn);
 }
