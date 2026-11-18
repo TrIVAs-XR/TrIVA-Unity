@@ -66,7 +66,8 @@ The agent code inside `Packages/io.github.trivas-xr.agent/`:
 
 The agent can refer to objects in the scene by looking at them, pointing at them, or both.
 
-- **`AgentTarget`** marks an object the agent can refer to. It has an ID to refer to it by, and optional anchors for the points the agent looks and points at.
+- **`ReferableObject`** marks an object the agent and the backend can refer to. Its ID is unique among the loaded objects: an authored one, or for spawned objects one generated from its kind (`flask-3`), and `ReferableObject.TryFind` looks it up. It has a kind, optional anchors for the points the agent looks and points at, and a description sent to the backend; a scenario's component next to it adds its current state there by implementing `IObjectState`.
+- **`HeldObjectReporter`** tells the backend what the participant holds in each hand: it sends a `held` client message whenever one of its XRI interactors grabs or releases, or a held object changes.
 - **`ReferenceController`** sits on the agent and makes it refer to a target with `Refer(target, look, point, duration)`. In Play mode, its **Refer** button refers to a random target and each target's **Agent Refers Here** button to that one.
 - **`GazeController`** turns eyes and head to the target while the agent looks at it, then hands the gaze back to the agent's state.
 - **`PointingController`** plays a pointing clip toward the target and turns torso, wrist and arm on top of it so the index finger lines up with the target. Targets far to the left are pointed at with the mirrored left arm; targets too far to the side or behind the agent are not pointed at.

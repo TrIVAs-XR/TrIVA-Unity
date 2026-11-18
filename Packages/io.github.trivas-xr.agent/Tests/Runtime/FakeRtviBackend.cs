@@ -84,7 +84,7 @@ namespace TrIVA.Tests
         /// <summary>
         /// Encodes an RTVI message as the backend would and hands it to the client as if it arrived over LiveKit.
         /// </summary>
-        private void Send(string type, JObject data)
+        public void Send(string type, JObject data)
         {
             JObject message = new JObject
             {

@@ -29,6 +29,8 @@ namespace TrIVA.Connection
         private const string RtviProtocolVersion = "2.1.0";
         private const string ClientLibraryName = "triva-unity";
         private const string ErrorType = "error";
+        private const string BotReadyType = "bot-ready";
+        private const string ClientMessageType = "client-message";
 
         // RTVI message types consumed elsewhere in the app, or otherwise irrelevant (animation/lip sync are
         // audio-driven, not event-driven); anything else gets an unknown-type debug log.
@@ -67,6 +69,16 @@ namespace TrIVA.Connection
         /// Raised when the transport closes, as when the LiveKit room disconnects; nothing can be sent until it opens again.
         /// </summary>
         public event Action Disconnected;
+
+        /// <summary>
+        /// Raised when the bot reports it is ready, once per connection; from then on the backend acts on client messages.
+        /// </summary>
+        public event Action BotReady;
+
+        /// <summary>
+        /// Whether the bot has reported it is ready since the transport last opened.
+        /// </summary>
+        public bool IsBotReady { get; private set; }
 
         private Room _room;
         private Action<byte[]> _publish;
@@ -123,6 +135,7 @@ namespace TrIVA.Connection
                 _room.DataReceived -= OnDataReceived;
             _room = null;
             _publish = null;
+            IsBotReady = false;
             Disconnected?.Invoke();
         }
 
@@ -148,6 +161,16 @@ namespace TrIVA.Connection
             byte[] bytes = Encoding.UTF8.GetBytes(message.ToString(Formatting.None));
             _publish(bytes);
             MessageSent?.Invoke(type, data);
+        }
+
+        /// <summary>
+        /// Sends a custom client message of the given type to the backend; while the transport is closed it is dropped without a log, so inputs can be sent whenever they change.
+        /// </summary>
+        public void SendClientMessage(string type, JToken data)
+        {
+            if (_publish == null)
+                return;
+            Send(ClientMessageType, new JObject { ["t"] = type, ["d"] = data });
         }
 
         /// <summary>
@@ -179,7 +202,7 @@ namespace TrIVA.Connection
         }
 
         /// <summary>
-        /// Decodes an incoming packet and raises MessageReceived for well-formed RTVI messages; packets arrive from the LiveKit room in the app, from a fake backend in tests.
+        /// Decodes an incoming packet and raises MessageReceived for well-formed RTVI messages, and BotReady for the first bot-ready of a connection; packets arrive from the LiveKit room in the app, from a fake backend in tests.
         /// </summary>
         internal void Receive(byte[] data)
         {
@@ -200,7 +223,13 @@ namespace TrIVA.Connection
             if (string.IsNullOrEmpty(type))
                 return;
 
+            bool botBecameReady = type == BotReadyType && !IsBotReady;
+            if (botBecameReady)
+                IsBotReady = true;
+
             MessageReceived?.Invoke(type, message["data"] as JObject);
+            if (botBecameReady)
+                BotReady?.Invoke();
 
             if (type == ErrorType)
                 LogServerError(message["data"] as JObject);

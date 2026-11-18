@@ -1,6 +1,7 @@
 using System.Collections.Generic;
-using UnityEngine;
+using TrIVA.Objects;
 using TrIVA.Utils;
+using UnityEngine;
 
 namespace TrIVA.Agent
 {
@@ -16,7 +17,7 @@ namespace TrIVA.Agent
         private bool _looking;
         private float _lookUntil;
         private Transform _awaitedRelease;
-        private AgentTarget _lastDebugTarget;
+        private ReferableObject _lastDebugTarget;
 
         /// <summary>
         /// Checks the references, disabling the component with an error when one is missing, and listens for the arm releasing its target.
@@ -53,16 +54,16 @@ namespace TrIVA.Agent
         /// Inspector button that refers to the given target, or to a random other one in the scene when none is given.
         /// </summary>
         [Button("Refer", PlayModeOnly = true)]
-        private void DebugRefer(AgentTarget target = null, bool look = true, bool point = true, float duration = 3f)
+        private void DebugRefer(ReferableObject target = null, bool look = true, bool point = true, float duration = 3f)
         {
             if (!target)
             {
-                List<AgentTarget> candidates = new(AgentTarget.All);
+                List<ReferableObject> candidates = new(ReferableObject.All);
                 if (candidates.Count > 1)
                     candidates.Remove(_lastDebugTarget);
                 if (candidates.Count == 0)
                 {
-                    Debug.LogWarning("ReferenceController: no AgentTarget in the scene to refer to.", this);
+                    Debug.LogWarning("ReferenceController: no ReferableObject in the scene to refer to.", this);
                     return;
                 }
                 target = candidates[Random.Range(0, candidates.Count)];
@@ -75,7 +76,7 @@ namespace TrIVA.Agent
         /// <summary>
         /// Looks at and points at the target as asked; a part not asked for ends any earlier one. Looking alone lasts the given seconds, or until Stop when the duration is zero or less; looking while pointing ends shortly after the arm passes its peak.
         /// </summary>
-        public void Refer(AgentTarget target, bool look = true, bool point = true, float duration = 3f)
+        public void Refer(ReferableObject target, bool look = true, bool point = true, float duration = 3f)
         {
             if (!target || !enabled)
                 return;
