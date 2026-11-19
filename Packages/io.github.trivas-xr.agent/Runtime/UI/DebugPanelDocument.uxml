@@ -3,12 +3,6 @@
     <engine:VisualElement name="debug-panel" picking-mode="Ignore" class="dbg-panel">
         <engine:TabView name="debug-tabs" class="dbg-tabs dbg-tabs--top">
             <engine:Tab name="livekit-tab" label="LiveKit">
-                <engine:VisualElement class="dbg-section" style="padding-top: 10px;">
-                    <engine:Label text="ACTIONS" enable-rich-text="false" class="dbg-section-title"/>
-                    <engine:VisualElement class="dbg-row">
-                        <engine:Button name="disconnect-button" text="Disconnect" class="dbg-button dbg-button--danger"/>
-                    </engine:VisualElement>
-                </engine:VisualElement>
                 <engine:VisualElement class="dbg-section">
                     <engine:Label text="MICROPHONE" enable-rich-text="false" class="dbg-section-title"/>
                     <engine:DropdownField name="microphone-dropdown" class="dbg-dropdown"/>
@@ -19,6 +13,9 @@
                         <engine:Button name="mute-button" text="Mute" class="dbg-button"/>
                     </engine:VisualElement>
                 </engine:VisualElement>
+                <engine:Foldout name="scene-camera-section" text="SCENE CAMERA" value="false" class="dbg-section dbg-foldout">
+                    <engine:Image name="scene-camera-preview" class="dbg-camera-preview"/>
+                </engine:Foldout>
                 <engine:VisualElement class="dbg-section">
                     <engine:Label text="STATE" enable-rich-text="false" class="dbg-section-title"/>
                     <engine:VisualElement class="dbg-row">
@@ -77,5 +74,8 @@
                 </engine:VisualElement>
             </engine:Tab>
         </engine:TabView>
+        <engine:VisualElement name="header-actions" picking-mode="Ignore" class="dbg-header-actions">
+            <engine:Button name="disconnect-button" text="Disconnect" class="dbg-button dbg-button--danger"/>
+        </engine:VisualElement>
     </engine:VisualElement>
 </engine:UXML>

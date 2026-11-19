@@ -26,7 +26,7 @@
 .dbg-panel {
     width: 800px;
     flex-grow: 1;
-    padding: 20px;
+    padding: 16px;
     border-radius: 16px;
     background-color: var(--dbg-bg);
     color: var(--dbg-text);
@@ -47,25 +47,35 @@
     justify-content: flex-end;
     align-items: center;
     flex-shrink: 0;
-    margin-bottom: 12px;
+    margin-bottom: 8px;
 }
 
 .dbg-footer {
     flex-direction: row;
     align-items: center;
     flex-shrink: 0;
-    margin-top: 12px;
+    margin-top: 8px;
+}
+
+.dbg-header-actions {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    height: 42px;
+    padding-right: 3px;
+    flex-direction: row;
+    align-items: center;
 }
 
 .dbg-section {
     flex-shrink: 0;
-    margin-bottom: 18px;
+    margin-bottom: 12px;
     flex-grow: 0;
     flex-direction: column;
 }
 
 .dbg-section-title {
-    margin: 0 0 10px 0;
+    margin: 0 0 6px 0;
     padding: 0;
     font-size: var(--dbg-font-s);
     -unity-font-style: bold;
@@ -102,16 +112,16 @@
 }
 
 .dbg-tabs--top > .unity-tab-view__content-viewport > .unity-tab-view__header-container {
-    margin-bottom: 12px;
+    margin-bottom: 8px;
 }
 
 .dbg-tabs--inner > .unity-tab-view__content-viewport > .unity-tab-view__header-container {
-    margin-bottom: 10px;
+    margin-bottom: 8px;
 }
 
 .dbg-tabs .unity-tab__header {
-    min-height: 48px;
-    padding: 0 16px;
+    min-height: 36px;
+    padding: 0 12px;
     margin: 0 2px;
     border-radius: 8px;
     justify-content: center;
@@ -160,10 +170,10 @@
 .dbg-chip {
     flex-direction: row;
     align-items: center;
-    height: 40px;
+    height: 32px;
     padding: 0 12px;
     margin-right: 6px;
-    border-radius: 20px;
+    border-radius: 16px;
     border-width: 1px;
     border-color: var(--dbg-border-faint);
     background-color: var(--dbg-surface);
@@ -202,8 +212,8 @@
 }
 
 .dbg-button {
-    height: 48px;
-    padding: 0 16px;
+    height: 36px;
+    padding: 0 12px;
     margin: 0 0 0 6px;
     border-radius: 8px;
     border-width: 1px;
@@ -233,10 +243,10 @@
 }
 
 .dbg-toggle {
-    height: 48px;
-    padding: 0 16px;
+    height: 36px;
+    padding: 0 12px;
     margin: 0 0 0 6px;
-    border-radius: 24px;
+    border-radius: 18px;
     border-width: 1px;
     border-color: rgba(255, 255, 255, 0.18);
     background-color: rgba(0, 0, 0, 0);
@@ -291,7 +301,7 @@
 }
 
 .dbg-dropdown .unity-base-field__input {
-    height: 52px;
+    height: 40px;
     padding: 0 12px;
     border-radius: 8px;
     border-width: 1px;
@@ -309,7 +319,36 @@
 }
 
 .dbg-meter-row {
-    margin-top: 10px;
+    margin-top: 8px;
+}
+
+.dbg-foldout > .unity-foldout__toggle {
+    margin: 0;
+}
+
+.dbg-foldout .unity-foldout__text {
+    margin: 0;
+    padding: 0;
+    font-size: var(--dbg-font-s);
+    -unity-font-style: bold;
+    letter-spacing: 1.5px;
+    color: var(--dbg-text-dim);
+}
+
+.dbg-foldout .unity-foldout__checkmark {
+    -unity-background-image-tint-color: var(--dbg-text-dim);
+}
+
+.dbg-foldout > .unity-foldout__content {
+    margin: 6px 0 0 0;
+}
+
+.dbg-camera-preview {
+    height: 160px;
+    border-radius: 6px;
+    border-width: 1px;
+    border-color: var(--dbg-border-faint);
+    background-color: var(--dbg-surface);
 }
 
 .dbg-meter {
