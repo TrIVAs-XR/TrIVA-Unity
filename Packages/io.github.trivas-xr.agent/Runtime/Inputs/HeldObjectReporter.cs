@@ -97,7 +97,7 @@ namespace TrIVA.Inputs
         }
 
         /// <summary>
-        /// Describes the first object an interactor of the hand holds and adds it to the held objects; null when the hand is empty. An object without a ReferableObject is only described as unknown, as it cannot be referred to.
+        /// Describes the first object an interactor of the hand holds and adds it to the held objects; null when the hand is empty. An object without a ReferableObject is described as unknown with its name, as it cannot be referred to.
         /// </summary>
         private JToken DescribeHeld(InteractorHandedness hand, List<ReferableObject> held)
         {
@@ -108,7 +108,7 @@ namespace TrIVA.Inputs
                 IXRSelectInteractable interactable = interactor.interactablesSelected[0];
                 ReferableObject referable = interactable.transform.GetComponentInParent<ReferableObject>();
                 if (!referable)
-                    return new JObject { ["id"] = null, ["kind"] = "unknown" };
+                    return ReferableObject.DescribeUnreferable(interactable.transform.gameObject);
                 held.Add(referable);
                 return referable.Describe();
             }

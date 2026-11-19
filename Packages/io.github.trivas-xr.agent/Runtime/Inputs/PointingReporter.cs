@@ -5,6 +5,7 @@ using TrIVA.Objects;
 using Unity.Collections;
 using UnityEngine;
 using UnityEngine.XR.Interaction.Toolkit;
+using UnityEngine.XR.Interaction.Toolkit.Interactables;
 using UnityEngine.XR.Interaction.Toolkit.Interactors;
 using UnityEngine.XR.Interaction.Toolkit.Interactors.Visuals;
 
@@ -42,39 +43,41 @@ namespace TrIVA.Inputs
         {
             public readonly bool Pointing;
             public readonly ReferableObject Referable;
+            public readonly GameObject Unreferable;
 
             /// <summary>
-            /// Creates a target; a pointing target without a referable is an object that cannot be referred to.
+            /// Creates a pointing target: either a referable object, or an object without a ReferableObject that can only be named.
             /// </summary>
-            public Target(bool pointing, ReferableObject referable)
+            public Target(ReferableObject referable, GameObject unreferable)
             {
-                Pointing = pointing;
+                Pointing = true;
                 Referable = referable;
+                Unreferable = unreferable;
             }
 
             /// <summary>
-            /// Whether the target was a referable object that has since been destroyed.
+            /// Whether the target was an object that has since been destroyed.
             /// </summary>
-            public bool Gone => !ReferenceEquals(Referable, null) && !Referable;
+            public bool Gone => (!ReferenceEquals(Referable, null) && !Referable) || (!ReferenceEquals(Unreferable, null) && !Unreferable);
 
             /// <summary>
-            /// Whether both name the same target; a destroyed referable is still told apart from an object that never had one.
+            /// Whether both name the same target; a destroyed object is still told apart from another or from none.
             /// </summary>
             public bool Same(Target other)
             {
-                return Pointing == other.Pointing && ReferenceEquals(Referable, other.Referable);
+                return Pointing == other.Pointing && ReferenceEquals(Referable, other.Referable) && ReferenceEquals(Unreferable, other.Unreferable);
             }
 
             /// <summary>
-            /// Describes the target as the backend receives it: null for nothing, unknown for an object that cannot be referred to.
+            /// Describes the target as the backend receives it: null for nothing or a destroyed object, unknown with the object's name for an object that cannot be referred to.
             /// </summary>
             public JToken Describe()
             {
-                if (!Pointing)
+                if (!Pointing || Gone)
                     return JValue.CreateNull();
-                if (!Referable)
-                    return new JObject { ["id"] = null, ["kind"] = "unknown" };
-                return Referable.Describe();
+                if (Referable)
+                    return Referable.Describe();
+                return ReferableObject.DescribeUnreferable(Unreferable);
             }
         }
 
@@ -235,7 +238,7 @@ namespace TrIVA.Inputs
         }
 
         /// <summary>
-        /// Finds what the hand's far ray hits this frame: an interactable the ray validly hits, else a referable object along the ray that is no interactable, such as a station; a hand that holds something does not point.
+        /// Finds what the hand's far ray hits this frame: an interactable or UI panel the ray validly hits, else a referable object along the ray that is no interactable, such as a station; a hand that holds something does not point.
         /// </summary>
         private Target FindHit(InteractorHandedness hand)
         {
@@ -247,20 +250,32 @@ namespace TrIVA.Inputs
                 if (!curve.isActive)
                     continue;
                 EndPointType end = interactor.TryGetCurveEndPoint(out Vector3 _);
-                if (end == EndPointType.ValidCastHit)
+                if (end == EndPointType.ValidCastHit || end == EndPointType.UI)
                 {
                     Transform hit = ((IXRRayProvider)interactor).rayEndTransform;
                     if (hit)
-                        return new Target(true, hit.GetComponentInParent<ReferableObject>());
+                        return TargetOf(hit);
                 }
-                else if (end != EndPointType.UI)
+                else
                 {
                     ReferableObject referable = FindReferableAlong(curve.samplePoints);
                     if (referable)
-                        return new Target(true, referable);
+                        return new Target(referable, null);
                 }
             }
             return default;
+        }
+
+        /// <summary>
+        /// Turns the transform a far ray validly hit, an interactable or a UI element, into a target: its referable object, else the interactable it belongs to or the element itself, named only.
+        /// </summary>
+        private static Target TargetOf(Transform hit)
+        {
+            ReferableObject referable = hit.GetComponentInParent<ReferableObject>();
+            if (referable)
+                return new Target(referable, null);
+            XRBaseInteractable interactable = hit.GetComponentInParent<XRBaseInteractable>();
+            return new Target(null, interactable ? interactable.gameObject : hit.gameObject);
         }
 
         /// <summary>

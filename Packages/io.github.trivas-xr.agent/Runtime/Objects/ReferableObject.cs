@@ -119,6 +119,19 @@ namespace TrIVA.Objects
         }
 
         /// <summary>
+        /// Describes an object that has no ReferableObject, so the backend at least learns its name: no ID, kind unknown, and the GameObject's name without the clone suffix.
+        /// </summary>
+        public static JObject DescribeUnreferable(GameObject source)
+        {
+            return new JObject
+            {
+                ["id"] = null,
+                ["kind"] = "unknown",
+                ["name"] = source.name.Replace("(Clone)", "").Trim()
+            };
+        }
+
+        /// <summary>
         /// Generates the next free ID for a kind, such as flask-3.
         /// </summary>
         private static string NextId(string kind)

@@ -89,17 +89,19 @@ namespace TrIVA.Tests
         }
 
         /// <summary>
-        /// A grabbed object without a ReferableObject is reported as unknown without an ID.
+        /// A grabbed object without a ReferableObject is reported as unknown without an ID, named after its GameObject without the clone suffix.
         /// </summary>
         [Test]
         public void ReportsObjectsWithoutReferableAsUnknown()
         {
             XRGrabInteractable thing = CreateGrabbable(null, null, false);
+            thing.gameObject.name = "Chemical Bottle(Clone)";
 
             _manager.SelectEnter((IXRSelectInteractor)_left, thing);
             JObject held = TakeSingleHeld();
             Assert.AreEqual(JTokenType.Null, held["left"]["id"].Type);
             Assert.AreEqual("unknown", (string)held["left"]["kind"]);
+            Assert.AreEqual("Chemical Bottle", (string)held["left"]["name"]);
         }
 
         /// <summary>

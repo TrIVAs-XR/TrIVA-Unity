@@ -10,10 +10,14 @@ using TrIVA.Inputs;
 using TrIVA.Objects;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.TestTools;
+using UnityEngine.UI;
 using UnityEngine.XR.Interaction.Toolkit;
 using UnityEngine.XR.Interaction.Toolkit.Interactables;
 using UnityEngine.XR.Interaction.Toolkit.Interactors;
+using UnityEngine.XR.Interaction.Toolkit.Interactors.Casters;
+using UnityEngine.XR.Interaction.Toolkit.UI;
 
 namespace TrIVA.Tests
 {
@@ -136,17 +140,24 @@ namespace TrIVA.Tests
         }
 
         /// <summary>
-        /// An interactable without a ReferableObject is reported as unknown without an ID.
+        /// An interactable without a ReferableObject is reported as unknown without an ID, named after its GameObject without the clone suffix, and a second one is told apart from the first.
         /// </summary>
         [UnityTest]
         public IEnumerator ReportsObjectsWithoutReferableAsUnknown()
         {
-            CreateGrabbable(null, null, false);
+            CreateGrabbable(null, null, false).gameObject.name = "Chemical Bottle(Clone)";
+            CreateGrabbable(null, null, false, new Vector3(2f, 0f, 2f)).gameObject.name = "UI Grabber";
 
             yield return Wait(Settled);
             JObject pointing = TakeSingle();
             Assert.AreEqual(JTokenType.Null, pointing["right"]["id"].Type);
             Assert.AreEqual("unknown", (string)pointing["right"]["kind"]);
+            Assert.AreEqual("Chemical Bottle", (string)pointing["right"]["name"]);
+
+            _right.transform.rotation = Quaternion.Euler(0f, 45f, 0f);
+            yield return Wait(Settled);
+            JObject[] messages = _backend.TakeMessages();
+            Assert.AreEqual("UI Grabber", (string)messages[messages.Length - 1]["data"]["d"]["right"]["name"]);
         }
 
         /// <summary>
@@ -276,6 +287,68 @@ namespace TrIVA.Tests
 
             yield return Wait(Settled);
             CollectionAssert.IsEmpty(_backend.TakeMessages());
+        }
+
+        /// <summary>
+        /// A solid collider of the participant's own rig in front of the hand does not block the ray when it is on Ignore Raycast, which both the XRI caster and the reporter leave out, as on the XR rig.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator RigCollidersOnIgnoreRaycastDoNotBlockTheRay()
+        {
+            int ignoreRaycast = LayerMask.NameToLayer("Ignore Raycast");
+            ((CurveInteractionCaster)_right.farInteractionCaster).raycastMask = ~(1 << ignoreRaycast);
+            GameObject rig = new GameObject("Rig Body");
+            _created.Add(rig);
+            rig.layer = ignoreRaycast;
+            rig.transform.position = new Vector3(0f, 0f, 0.5f);
+            rig.AddComponent<BoxCollider>().size = new Vector3(0.5f, 0.5f, 0.2f);
+            CreateStation("pointing_test_station_behind_rig", new Vector3(0f, 0f, 2f));
+
+            yield return Wait(Settled);
+            Assert.AreEqual("pointing_test_station_behind_rig", (string)TakeSingle()["right"]["id"]);
+        }
+
+        /// <summary>
+        /// A world-space UI panel the ray hits is reported as the referable object it belongs to.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator ReportsReferableUiPanels()
+        {
+            GameObject eventSystem = new GameObject("Event System");
+            _created.Add(eventSystem);
+            eventSystem.AddComponent<EventSystem>();
+            eventSystem.AddComponent<XRUIInputModule>();
+            GameObject cameraObject = new GameObject("Camera");
+            _created.Add(cameraObject);
+            Camera eventCamera = cameraObject.AddComponent<Camera>();
+
+            GameObject panel = new GameObject("Panel");
+            _created.Add(panel);
+            panel.SetActive(false);
+            Canvas canvas = panel.AddComponent<Canvas>();
+            canvas.renderMode = RenderMode.WorldSpace;
+            canvas.worldCamera = eventCamera;
+            panel.AddComponent<TrackedDeviceGraphicRaycaster>();
+            RectTransform panelRect = (RectTransform)panel.transform;
+            panelRect.position = new Vector3(0f, 0f, 2f);
+            panelRect.sizeDelta = new Vector2(100f, 100f);
+            panelRect.localScale = Vector3.one * 0.01f;
+            ReferableObject referableObject = panel.AddComponent<ReferableObject>();
+            SerializedObject serialized = new SerializedObject(referableObject);
+            serialized.FindProperty("Id").stringValue = "pointing_test_panel";
+            serialized.FindProperty("Kind").stringValue = "panel";
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+            GameObject image = new GameObject("Button", typeof(RectTransform), typeof(Image));
+            image.transform.SetParent(panel.transform, false);
+            ((RectTransform)image.transform).sizeDelta = new Vector2(100f, 100f);
+            panel.SetActive(true);
+            _right.gameObject.SetActive(false);
+            _right.gameObject.SetActive(true);
+
+            yield return Wait(Settled);
+            JObject pointing = TakeSingle();
+            Assert.AreEqual("pointing_test_panel", (string)pointing["right"]["id"]);
+            Assert.AreEqual("panel", (string)pointing["right"]["kind"]);
         }
 
         /// <summary>
