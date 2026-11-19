@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using Newtonsoft.Json.Linq;
 using TrIVA.Connection;
 using TrIVA.Objects;
+using Unity.Collections;
 using UnityEngine;
 using UnityEngine.XR.Interaction.Toolkit;
 using UnityEngine.XR.Interaction.Toolkit.Interactors;
@@ -24,6 +25,10 @@ namespace TrIVA.Inputs
         private float DwellSeconds = 1f;
         [SerializeField, Min(0f), Tooltip("Seconds a ray may slip off its object before that counts as leaving it, so jitter at an object's edge does not reset the dwell or end the pointing.")]
         private float GraceSeconds = 0.3f;
+        [SerializeField, Tooltip("Layers searched along the ray for referable objects that are no XRI interactables, such as stations; trigger colliders count, and a solid collider without a ReferableObject blocks the ray. The search follows the XRI ray only up to its own first hit, so keep these layers in line with the interactor's raycast mask.")]
+        private LayerMask RaycastLayers = Physics.DefaultRaycastLayers;
+
+        private static readonly RaycastHit[] RaycastHits = new RaycastHit[64];
 
         private readonly Hand _left = new();
         private readonly Hand _right = new();
@@ -230,7 +235,7 @@ namespace TrIVA.Inputs
         }
 
         /// <summary>
-        /// Finds what the first interactor of the hand with a valid far-ray hit on an interactable hits this frame; a hand that holds something does not point.
+        /// Finds what the hand's far ray hits this frame: an interactable the ray validly hits, else a referable object along the ray that is no interactable, such as a station; a hand that holds something does not point.
         /// </summary>
         private Target FindHit(InteractorHandedness hand)
         {
@@ -238,16 +243,62 @@ namespace TrIVA.Inputs
             {
                 if (!interactor || interactor.handedness != hand || !interactor.isActiveAndEnabled || interactor.hasSelection)
                     continue;
-                if (!((ICurveInteractionDataProvider)interactor).isActive)
+                ICurveInteractionDataProvider curve = interactor;
+                if (!curve.isActive)
                     continue;
-                if (interactor.TryGetCurveEndPoint(out Vector3 _) != EndPointType.ValidCastHit)
-                    continue;
-                Transform hit = ((IXRRayProvider)interactor).rayEndTransform;
-                if (!hit)
-                    continue;
-                return new Target(true, hit.GetComponentInParent<ReferableObject>());
+                EndPointType end = interactor.TryGetCurveEndPoint(out Vector3 _);
+                if (end == EndPointType.ValidCastHit)
+                {
+                    Transform hit = ((IXRRayProvider)interactor).rayEndTransform;
+                    if (hit)
+                        return new Target(true, hit.GetComponentInParent<ReferableObject>());
+                }
+                else if (end != EndPointType.UI)
+                {
+                    ReferableObject referable = FindReferableAlong(curve.samplePoints);
+                    if (referable)
+                        return new Target(true, referable);
+                }
             }
             return default;
+        }
+
+        /// <summary>
+        /// Casts along the ray's curve segments and returns the nearest referable object it hits, triggers included, unless a solid collider without one is in front of it.
+        /// </summary>
+        private ReferableObject FindReferableAlong(NativeArray<Vector3> points)
+        {
+            for (int i = 1; i < points.Length; i++)
+            {
+                Vector3 from = points[i - 1];
+                Vector3 segment = points[i] - from;
+                float length = segment.magnitude;
+                if (length <= 0f)
+                    continue;
+                int count = Physics.RaycastNonAlloc(from, segment / length, RaycastHits, length, RaycastLayers, QueryTriggerInteraction.Collide);
+                ReferableObject nearest = null;
+                float nearestDistance = float.PositiveInfinity;
+                float blockedAt = float.PositiveInfinity;
+                for (int h = 0; h < count; h++)
+                {
+                    RaycastHit hit = RaycastHits[h];
+                    ReferableObject referable = hit.collider.GetComponentInParent<ReferableObject>();
+                    if (referable && hit.distance < nearestDistance)
+                    {
+                        nearest = referable;
+                        nearestDistance = hit.distance;
+                    }
+                    else if (!referable && !hit.collider.isTrigger && hit.distance < blockedAt)
+                    {
+                        blockedAt = hit.distance;
+                    }
+                }
+                if (nearestDistance < blockedAt)
+                    return nearest;
+                if (blockedAt < float.PositiveInfinity)
+                    return null;
+            }
+            return null;
         }
     }
 }

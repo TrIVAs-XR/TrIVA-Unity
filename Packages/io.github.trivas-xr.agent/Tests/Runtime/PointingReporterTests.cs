@@ -249,6 +249,54 @@ namespace TrIVA.Tests
         }
 
         /// <summary>
+        /// A referable object that is no interactable and only has a trigger collider, like a station, can be pointed at.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator ReportsReferableTriggersThatAreNoInteractables()
+        {
+            CreateStation("pointing_test_station", new Vector3(0f, 0f, 2f));
+
+            yield return Wait(Settled);
+            JObject pointing = TakeSingle();
+            Assert.AreEqual("pointing_test_station", (string)pointing["right"]["id"]);
+            Assert.AreEqual("station", (string)pointing["right"]["kind"]);
+        }
+
+        /// <summary>
+        /// A solid collider without a ReferableObject in front of a station blocks the ray, so nothing is reported.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator SolidCollidersBlockTheRayToAStation()
+        {
+            CreateStation("pointing_test_hidden_station", new Vector3(0f, 0f, 3f));
+            GameObject wall = new GameObject("Wall");
+            _created.Add(wall);
+            wall.transform.position = new Vector3(0f, 0f, 1.5f);
+            wall.AddComponent<BoxCollider>();
+
+            yield return Wait(Settled);
+            CollectionAssert.IsEmpty(_backend.TakeMessages());
+        }
+
+        /// <summary>
+        /// Creates a referable object of kind station at the given position with only a trigger collider and no interactable.
+        /// </summary>
+        private void CreateStation(string id, Vector3 position)
+        {
+            GameObject station = new GameObject("Station");
+            _created.Add(station);
+            station.SetActive(false);
+            station.transform.position = position;
+            station.AddComponent<BoxCollider>().isTrigger = true;
+            ReferableObject referableObject = station.AddComponent<ReferableObject>();
+            SerializedObject serialized = new SerializedObject(referableObject);
+            serialized.FindProperty("Id").stringValue = id;
+            serialized.FindProperty("Kind").stringValue = "station";
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+            station.SetActive(true);
+        }
+
+        /// <summary>
         /// Waits the given real time, so the interaction manager casts the far ray and the reporter reads it every frame.
         /// </summary>
         private static IEnumerator Wait(float seconds)

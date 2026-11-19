@@ -180,6 +180,9 @@ MonoBehaviour:
   - {fileID: 7225052372862888371}
   DwellSeconds: 1
   GraceSeconds: 0.3
+  RaycastLayers:
+    serializedVersion: 2
+    m_Bits: 2147483681
 --- !u!114 &6894012517002214950 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 1386082259481429544, guid: d6878e1999eb4b44a9f5a263af86c185, type: 3}
