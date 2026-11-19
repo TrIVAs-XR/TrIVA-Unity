@@ -50,10 +50,10 @@ The agent code inside `Packages/io.github.trivas-xr.agent/`:
 
 | Folder | Contents |
 |---|---|
-| `Runtime/Connection/` | LiveKit connection with retry, agent audio playback, microphone publishing with push-to-talk and mute, the RTVI message channel |
+| `Runtime/Connection/` | LiveKit connection with retry, agent audio playback, microphone publishing with push-to-talk and mute, publishing the participant's view, the RTVI message channel |
 | `Runtime/Agent/` | Agent state machine, behaviour driver (animation and gaze), blinking, lip sync binding, face rig profile, random animation variants, foot planting, looking and pointing at scene targets |
-| `Runtime/Inputs/` | Participant inputs sent to the backend: what each hand holds and what each hand points at |
-| `Runtime/Debugging/` | World-space debug panel and an Editor-only recorder for RTVI messages |
+| `Runtime/Inputs/` | Participant inputs sent to the backend: what each hand holds and what each hand points at; the vision camera's lagged head follower |
+| `Runtime/Debugging/` | World-space debug panel, with a vision preview, and an Editor-only recorder for RTVI messages |
 | `Runtime/UI/` | Layout, theme and fonts of the debug panel |
 | `Runtime/Utils/` | Inspector button attribute and a singleton base class |
 | `Runtime/Prefabs/` | `LiveKitConnector` and `DebugLogUI` prefabs |
@@ -71,6 +71,7 @@ The agent can refer to objects in the scene by looking at them, pointing at them
 - **`HeldObjectReporter`** sends the backend a `held` message with the object in each hand whenever a grab starts or ends or a held object changes.
 - **`PointingReporter`** sends the backend a `pointing` message with the object each hand's far ray has rested on for a moment: an interactable, a UI panel, or a referable object without an interactable, such as a station.
 - Both report a referable object by its description and any other object as `unknown` with its name.
+- **`VisionPublisher`** shows the backend what the participant sees: on the rig's `Vision Camera`, with the `LiveKitConnector` assigned, it renders that second camera at a low frame rate (default 640x480 at 2 fps) and publishes it as the video track `vision`. WebRTC may lower the resolution while bandwidth is low. **`VisionCameraFollower`** moves that camera after the head with a lag, so a quick glance barely turns the view. The debug panel shows the latest frame.
 - **`ReferenceController`** sits on the agent and makes it refer to a target with `Refer(target, look, point, duration)`. In Play mode, its **Refer** button refers to a random target and each target's **Agent Refers Here** button to that one.
 - **`GazeController`** turns eyes and head to the target while the agent looks at it, then hands the gaze back to the agent's state.
 - **`PointingController`** plays a pointing clip toward the target and turns torso, wrist and arm on top of it so the index finger lines up with the target. Targets far to the left are pointed at with the mirrored left arm; targets too far to the side or behind the agent are not pointed at.

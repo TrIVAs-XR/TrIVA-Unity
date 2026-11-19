@@ -13,8 +13,8 @@
                         <engine:Button name="mute-button" text="Mute" class="dbg-button"/>
                     </engine:VisualElement>
                 </engine:VisualElement>
-                <engine:Foldout name="scene-camera-section" text="SCENE CAMERA" value="false" class="dbg-section dbg-foldout">
-                    <engine:Image name="scene-camera-preview" class="dbg-camera-preview"/>
+                <engine:Foldout name="vision-section" text="VISION" value="false" class="dbg-section dbg-foldout">
+                    <engine:Image name="vision-preview" class="dbg-camera-preview"/>
                 </engine:Foldout>
                 <engine:VisualElement class="dbg-section">
                     <engine:Label text="STATE" enable-rich-text="false" class="dbg-section-title"/>

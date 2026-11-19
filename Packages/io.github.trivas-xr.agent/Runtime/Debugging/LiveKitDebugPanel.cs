@@ -11,7 +11,7 @@ namespace TrIVA.Debugging
 {
     /// <summary>
     /// Drives the debug panel's LiveKit tab: connection, agent-speaking and audio-track status chips, a microphone
-    /// selector with input level meter and mute toggle, a manual disconnect control, a timestamped transcript, and raw inbound and outbound RTVI feeds.
+    /// selector with input level meter and mute toggle, a preview of the vision camera's latest frame, a manual disconnect control, a timestamped transcript, and raw inbound and outbound RTVI feeds.
     /// </summary>
     [RequireComponent(typeof(UIDocument))]
     public class LiveKitDebugPanel : MonoBehaviour
@@ -19,6 +19,8 @@ namespace TrIVA.Debugging
         [SerializeField] private LiveKitConnector _connector;
         [SerializeField] private LiveKitRtviClient _rtviClient;
         [SerializeField] private LiveKitMicrophonePublisher _microphonePublisher;
+        [Tooltip("Optional; without it the vision camera section is hidden.")]
+        [SerializeField] private VisionPublisher _visionPublisher;
         [SerializeField] private int _maxTranscriptLines = 100;
         [SerializeField] private int _maxFeedLines = 100;
         [Tooltip("Payload keys left out of the RTVI feed, matched by name at any depth.")]
@@ -32,6 +34,8 @@ namespace TrIVA.Debugging
         private const string MicLevelBarName = "mic-level-bar";
         private const string MicLevelLabelName = "mic-level-label";
         private const string MuteButtonName = "mute-button";
+        private const string VisionSectionName = "vision-section";
+        private const string VisionPreviewName = "vision-preview";
         private const float MicLevelMinDb = -60f;
         private const float MicLevelHotDb = -6f;
         private const float MicLevelFallPerSecond = 1.5f;
@@ -69,6 +73,7 @@ namespace TrIVA.Debugging
         private float _displayedMicLevel;
         private int _shownMicDb = int.MaxValue;
         private Button _muteButton;
+        private Image _visionPreview;
         private VisualElement _botSpeakingChip;
         private Label _botSpeakingLabel;
         private VisualElement _audioTrackChip;
@@ -105,6 +110,8 @@ namespace TrIVA.Debugging
             _rtviClient.MessageReceived += OnMessageReceived;
             _rtviClient.MessageSent += OnMessageSent;
             _rtviClient.MessageDropped += OnMessageDropped;
+            if (_visionPublisher)
+                _visionPublisher.FrameSent += OnVisionFrameSent;
 
             BindElements(_document.rootVisualElement);
         }
@@ -116,6 +123,8 @@ namespace TrIVA.Debugging
             _rtviClient.MessageReceived -= OnMessageReceived;
             _rtviClient.MessageSent -= OnMessageSent;
             _rtviClient.MessageDropped -= OnMessageDropped;
+            if (_visionPublisher)
+                _visionPublisher.FrameSent -= OnVisionFrameSent;
 
             if (_disconnectButton != null)
                 _disconnectButton.clicked -= OnDisconnectClicked;
@@ -183,6 +192,7 @@ namespace TrIVA.Debugging
             _micLevelBar = rootElement.Q<ProgressBar>(MicLevelBarName);
             _micLevelLabel = rootElement.Q<Label>(MicLevelLabelName);
             _muteButton = rootElement.Q<Button>(MuteButtonName);
+            _visionPreview = rootElement.Q<Image>(VisionPreviewName);
             _botSpeakingChip = rootElement.Q(BotSpeakingChipName);
             _botSpeakingLabel = rootElement.Q<Label>(BotSpeakingLabelName);
             _audioTrackChip = rootElement.Q(AudioTrackChipName);
@@ -200,6 +210,8 @@ namespace TrIVA.Debugging
             _microphoneDropdown.RegisterCallback<PointerDownEvent>(OnMicrophoneDropdownPointerDown, TrickleDown.TrickleDown);
             _muteButton.clicked += OnMuteClicked;
             _muteButton.text = _microphonePublisher.Muted ? "Unmute" : "Mute";
+            rootElement.Q(VisionSectionName).style.display = _visionPublisher ? DisplayStyle.Flex : DisplayStyle.None;
+            _visionPreview.image = _visionPublisher ? _visionPublisher.Frame : null;
             _transcriptClearButton.clicked += OnTranscriptClearClicked;
             _feedPauseButton.clicked += OnFeedPauseClicked;
             _feedClearButton.clicked += OnFeedClearClicked;
@@ -278,6 +290,18 @@ namespace TrIVA.Debugging
         {
             _microphonePublisher.SetMuted(!_microphonePublisher.Muted);
             _muteButton.text = _microphonePublisher.Muted ? "Unmute" : "Mute";
+        }
+
+        /// <summary>
+        /// Points the preview at the publisher's frame and repaints it, since the panel does not notice a render texture changing.
+        /// </summary>
+        private void OnVisionFrameSent()
+        {
+            if (_visionPreview == null)
+                return;
+
+            _visionPreview.image = _visionPublisher.Frame;
+            _visionPreview.MarkDirtyRepaint();
         }
 
         /// <summary>
