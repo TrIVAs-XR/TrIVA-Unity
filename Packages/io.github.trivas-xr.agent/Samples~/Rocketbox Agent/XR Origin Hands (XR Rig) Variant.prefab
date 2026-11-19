@@ -62,6 +62,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 2218496723442559054, guid: d6878e1999eb4b44a9f5a263af86c185, type: 3}
       insertIndex: -1
       addedObject: {fileID: 2115291280018989668}
+    - targetCorrespondingSourceObject: {fileID: 2218496723442559054, guid: d6878e1999eb4b44a9f5a263af86c185, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1446156649907065237}
   m_SourcePrefab: {fileID: 100100000, guid: d6878e1999eb4b44a9f5a263af86c185, type: 3}
 --- !u!114 &500075633131515485 stripped
 MonoBehaviour:
@@ -157,6 +160,26 @@ MonoBehaviour:
   - {fileID: 6894012517002214950}
   - {fileID: 500075633131515485}
   - {fileID: 7225052372862888371}
+--- !u!114 &1446156649907065237
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5933922035871158336}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1a69fd74215c21343b45088506de4e77, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: TrIVA::TrIVA.Inputs.PointingReporter
+  RtviClient: {fileID: 0}
+  Interactors:
+  - {fileID: 4520754630787883193}
+  - {fileID: 6894012517002214950}
+  - {fileID: 500075633131515485}
+  - {fileID: 7225052372862888371}
+  DwellSeconds: 1
+  GraceSeconds: 0.3
 --- !u!114 &6894012517002214950 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 1386082259481429544, guid: d6878e1999eb4b44a9f5a263af86c185, type: 3}

@@ -52,6 +52,7 @@ The agent code inside `Packages/io.github.trivas-xr.agent/`:
 |---|---|
 | `Runtime/Connection/` | LiveKit connection with retry, agent audio playback, microphone publishing with push-to-talk and mute, the RTVI message channel |
 | `Runtime/Agent/` | Agent state machine, behaviour driver (animation and gaze), blinking, lip sync binding, face rig profile, random animation variants, foot planting, looking and pointing at scene targets |
+| `Runtime/Inputs/` | Participant inputs sent to the backend: what each hand holds and what each hand points at |
 | `Runtime/Debugging/` | World-space debug panel and an Editor-only recorder for RTVI messages |
 | `Runtime/UI/` | Layout, theme and fonts of the debug panel |
 | `Runtime/Utils/` | Inspector button attribute and a singleton base class |
@@ -68,6 +69,7 @@ The agent can refer to objects in the scene by looking at them, pointing at them
 
 - **`ReferableObject`** marks an object the agent and the backend can refer to. Its ID is unique among the loaded objects: an authored one, or for spawned objects one generated from its kind (`flask-3`), and `ReferableObject.TryFind` looks it up. It has a kind, optional anchors for the points the agent looks and points at, and a description sent to the backend; a scenario's component next to it adds its current state there by implementing `IObjectState`.
 - **`HeldObjectReporter`** tells the backend what the participant holds in each hand: it sends a `held` client message whenever one of its XRI interactors grabs or releases, or a held object changes. Give it the `LiveKitRtviClient` and the interactors that count as holding, such as each hand's near-far interactor, each with its handedness set to left or right.
+- **`PointingReporter`** tells the backend what the participant points at with each hand: it sends a `pointing` client message with the object each hand's near-far far ray has rested on for a dwell (`DwellSeconds`, default 1 s; `GraceSeconds`, default 0.3 s, tolerates brief slips off the object), and sends it again whenever either hand's target changes or a pointed object changes. A hand that points at nothing or holds something is reported as null, and both hands are reported as null when the component is disabled. Give it the `LiveKitRtviClient` and the near-far interactors, each with its handedness set to left or right. Only XR Interaction Toolkit interactables can be pointed at; an interactable without a `ReferableObject` is reported as kind `unknown`.
 - **`ReferenceController`** sits on the agent and makes it refer to a target with `Refer(target, look, point, duration)`. In Play mode, its **Refer** button refers to a random target and each target's **Agent Refers Here** button to that one.
 - **`GazeController`** turns eyes and head to the target while the agent looks at it, then hands the gaze back to the agent's state.
 - **`PointingController`** plays a pointing clip toward the target and turns torso, wrist and arm on top of it so the index finger lines up with the target. Targets far to the left are pointed at with the mirrored left arm; targets too far to the side or behind the agent are not pointed at.
