@@ -44,7 +44,7 @@ Unity projects keep their own files in `Assets/`, but they can also hold code in
 | `Packages/io.github.trivas-xr.agent/` | The agent code, shared by every scene and project that uses the agent |
 | `Assets/Samples/TrIVA Agent/` | The imported Rocketbox Agent sample: avatar, materials, animations, animator and demo scene |
 | `Assets/Scenes/LiveKitConnectionTest.unity` | Minimal scene that only connects to LiveKit, for testing the backend |
-| `Assets/Samples/XR Interaction Toolkit/`, `Assets/Samples/XR Hands/` | Samples of those packages; Starter Assets and World Space UI are used by the demo scene and the debug panel |
+| `Assets/Samples/XR Interaction Toolkit/`, `Assets/Samples/XR Hands/` | Samples of those packages; Starter Assets, Hands Interaction Demo and World Space UI are used by the demo scene and the debug panel |
 
 The agent code inside `Packages/io.github.trivas-xr.agent/`:
 
@@ -67,7 +67,7 @@ The agent code inside `Packages/io.github.trivas-xr.agent/`:
 The agent can refer to objects in the scene by looking at them, pointing at them, or both.
 
 - **`ReferableObject`** marks an object the agent and the backend can refer to. Its ID is unique among the loaded objects: an authored one, or for spawned objects one generated from its kind (`flask-3`), and `ReferableObject.TryFind` looks it up. It has a kind, optional anchors for the points the agent looks and points at, and a description sent to the backend; a scenario's component next to it adds its current state there by implementing `IObjectState`.
-- **`HeldObjectReporter`** tells the backend what the participant holds in each hand: it sends a `held` client message whenever one of its XRI interactors grabs or releases, or a held object changes.
+- **`HeldObjectReporter`** tells the backend what the participant holds in each hand: it sends a `held` client message whenever one of its XRI interactors grabs or releases, or a held object changes. Give it the `LiveKitRtviClient` and the interactors that count as holding, such as each hand's near-far interactor, each with its handedness set to left or right.
 - **`ReferenceController`** sits on the agent and makes it refer to a target with `Refer(target, look, point, duration)`. In Play mode, its **Refer** button refers to a random target and each target's **Agent Refers Here** button to that one.
 - **`GazeController`** turns eyes and head to the target while the agent looks at it, then hands the gaze back to the agent's state.
 - **`PointingController`** plays a pointing clip toward the target and turns torso, wrist and arm on top of it so the index finger lines up with the target. Targets far to the left are pointed at with the mirrored left arm; targets too far to the side or behind the agent are not pointed at.
@@ -86,4 +86,4 @@ LiveKit is pinned in `Packages/manifest.json` to an upstream `main` commit that 
 
 ## Using the agent in another Unity project
 
-Optional, for adding the agent to an existing project instead of working in this one. Add the LiveKit Unity SDK and uLipSync Git packages from this project's `Packages/manifest.json` to that project's manifest (Unity packages cannot declare Git dependencies themselves), then the agent package, either as a local path (`"file:<path to>/Packages/io.github.trivas-xr.agent"`) or as a Git URL with `?path=/Packages/io.github.trivas-xr.agent`. Import the XR Interaction Toolkit samples **Starter Assets** and **World Space UI** there too.
+Optional, for adding the agent to an existing project instead of working in this one. Add the LiveKit Unity SDK and uLipSync Git packages from this project's `Packages/manifest.json` to that project's manifest (Unity packages cannot declare Git dependencies themselves), then the agent package, either as a local path (`"file:<path to>/Packages/io.github.trivas-xr.agent"`) or as a Git URL with `?path=/Packages/io.github.trivas-xr.agent`. Add the XR Hands package and import the XR Interaction Toolkit samples **Starter Assets**, **Hands Interaction Demo** and **World Space UI** there too.
