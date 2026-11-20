@@ -17,8 +17,10 @@ namespace TrIVA.Debugging
         [SerializeField] private LiveKitRtviClient _rtviClient;
         [Tooltip("Calls kept in all, in the fixed slots and the history together.")]
         [SerializeField] private int _maxRecords = 50;
+        [Tooltip("Data keys left out of the input rows, matched by name at any depth.")]
+        [SerializeField] private List<string> _hiddenDataKeys = new() { "color", "code" };
 
-        private const int SlotCount = 5;
+        private const int SlotCount = 4;
         private const string ServerMessageType = "server-message";
         private const string InputsMessageType = "inputs";
         private const string DraftState = "draft";
@@ -299,9 +301,9 @@ namespace TrIVA.Debugging
         }
 
         /// <summary>
-        /// Renders input data as "key: value" fields, nested keys dotted; a game snapshot shows only its top-level plain values, since its nested parts are scenario-specific and long.
+        /// Renders input data as "key: value" fields, nested keys dotted and hidden keys left out; a game snapshot shows only its top-level plain values, since its nested parts are scenario-specific and long.
         /// </summary>
-        private static string DataText(string kind, JToken data)
+        private string DataText(string kind, JToken data)
         {
             List<string> fields = new();
             AppendFields(fields, data, "", kind != GameKind);
@@ -309,9 +311,9 @@ namespace TrIVA.Debugging
         }
 
         /// <summary>
-        /// Adds one field per plain value below the token; with deep off, values nested below the top level are left out.
+        /// Adds one field per plain value below the token, skipping properties with a hidden key; with deep off, values nested below the top level are left out.
         /// </summary>
-        private static void AppendFields(List<string> fields, JToken token, string path, bool deep)
+        private void AppendFields(List<string> fields, JToken token, string path, bool deep)
         {
             if (token is JContainer container && container.HasValues)
             {
@@ -321,7 +323,10 @@ namespace TrIVA.Debugging
                 if (token is JObject obj)
                 {
                     foreach (JProperty property in obj.Properties())
-                        AppendFields(fields, property.Value, path.Length == 0 ? property.Name : $"{path}.{property.Name}", deep);
+                    {
+                        if (!_hiddenDataKeys.Contains(property.Name))
+                            AppendFields(fields, property.Value, path.Length == 0 ? property.Name : $"{path}.{property.Name}", deep);
+                    }
                 }
                 else if (token is JArray array)
                 {
