@@ -135,6 +135,9 @@ PrefabInstance:
       insertIndex: 2
       addedObject: {fileID: 1151876151050610481}
     - targetCorrespondingSourceObject: {fileID: 3927579247218649798, guid: c6b4b184963f45b4f82ef507fe7e2e5c, type: 3}
+      insertIndex: 3
+      addedObject: {fileID: 224152050515830308}
+    - targetCorrespondingSourceObject: {fileID: 3927579247218649798, guid: c6b4b184963f45b4f82ef507fe7e2e5c, type: 3}
       insertIndex: -1
       addedObject: {fileID: 8048984736561754716}
   m_SourcePrefab: {fileID: 100100000, guid: c6b4b184963f45b4f82ef507fe7e2e5c, type: 3}
@@ -171,11 +174,26 @@ MonoBehaviour:
   _connector: {fileID: 0}
   _rtviClient: {fileID: 0}
   _microphonePublisher: {fileID: 0}
+  _visionPublisher: {fileID: 0}
   _maxTranscriptLines: 100
   _maxFeedLines: 100
   _hiddenFeedKeys:
   - segment_id
   - aggregated_by
+--- !u!114 &224152050515830308
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5757815854039084676}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2908f219e6261684fba7ef43793b5056, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: TrIVA::TrIVA.Debugging.InputsDebugPanel
+  _rtviClient: {fileID: 0}
+  _maxRecords: 50
 --- !u!114 &8048984736561754716
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -199,6 +217,7 @@ MonoBehaviour:
   m_PivotReferenceSize: 0
   m_Pivot: 7
   m_WorldSpaceCollider: {fileID: 0}
+  m_GenerateAccessibilityHierarchy: 1
 --- !u!114 &7080752547233216416 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 1956160285415994338, guid: c6b4b184963f45b4f82ef507fe7e2e5c, type: 3}

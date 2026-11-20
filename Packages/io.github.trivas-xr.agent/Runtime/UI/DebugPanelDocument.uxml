@@ -73,6 +73,25 @@
                     <engine:Button name="log-clear-button" text="Clear" class="dbg-button"/>
                 </engine:VisualElement>
             </engine:Tab>
+            <engine:Tab name="inputs-tab" label="Inputs">
+                <engine:VisualElement class="dbg-toolbar dbg-toolbar--wrap">
+                    <engine:Toggle name="inputs-drafts-toggle" text="Drafts" value="true" class="dbg-toggle dbg-toggle--filter"/>
+                    <engine:Toggle name="inputs-transcript-toggle" text="Transcript" value="true" class="dbg-toggle dbg-toggle--filter"/>
+                    <engine:Toggle name="inputs-emotion-toggle" text="Emotion" value="true" class="dbg-toggle dbg-toggle--filter"/>
+                    <engine:Toggle name="inputs-held-toggle" text="Held" value="true" class="dbg-toggle dbg-toggle--filter"/>
+                    <engine:Toggle name="inputs-pointing-toggle" text="Pointing" value="true" class="dbg-toggle dbg-toggle--filter"/>
+                    <engine:Toggle name="inputs-game-toggle" text="Game" value="true" class="dbg-toggle dbg-toggle--filter"/>
+                    <engine:Button name="inputs-clear-button" text="Clear" class="dbg-button"/>
+                </engine:VisualElement>
+                <engine:TabView name="inputs-tabs" class="dbg-tabs dbg-tabs--inner">
+                    <engine:Tab name="inputs-latest-tab" label="Latest">
+                        <engine:VisualElement name="inputs-slots" class="dbg-input-slots"/>
+                    </engine:Tab>
+                    <engine:Tab name="inputs-older-tab" label="Older">
+                        <engine:ScrollView name="inputs-history-scroll-view" mode="Vertical" class="dbg-list"/>
+                    </engine:Tab>
+                </engine:TabView>
+            </engine:Tab>
         </engine:TabView>
         <engine:VisualElement name="header-actions" picking-mode="Ignore" class="dbg-header-actions">
             <engine:Button name="disconnect-button" text="Disconnect" class="dbg-button dbg-button--danger"/>

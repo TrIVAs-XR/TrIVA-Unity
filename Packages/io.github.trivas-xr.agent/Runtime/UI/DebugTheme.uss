@@ -99,10 +99,6 @@
     flex-shrink: 0;
 }
 
-.dbg-tabs--top > .unity-tab-view__content-viewport {
-    justify-content: flex-end;
-}
-
 .dbg-tabs > .unity-tab-view__content-viewport > .unity-tab-view__header-container {
     flex-direction: row;
     flex-shrink: 0;
@@ -519,4 +515,151 @@
 .dbg-entry--dropped .dbg-entry__marker {
     display: flex;
     background-color: var(--dbg-warn);
+}
+
+.dbg-toolbar--wrap {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+}
+
+.dbg-toolbar--wrap > .dbg-toggle {
+    margin: 0 6px 6px 0;
+}
+
+.dbg-toolbar--wrap > .dbg-button {
+    margin: 0 0 6px auto;
+}
+
+.dbg-toggle--filter:checked #unity-checkmark {
+    background-color: var(--dbg-user);
+}
+
+.dbg-input-slots {
+    flex-grow: 1;
+    flex-shrink: 1;
+    flex-basis: 0;
+    min-height: 0;
+}
+
+.dbg-input-slot {
+    flex-grow: 1;
+    flex-shrink: 1;
+    flex-basis: 0;
+    min-height: 0;
+    margin-bottom: 6px;
+    border-radius: 8px;
+    background-color: var(--dbg-surface);
+}
+
+.dbg-input-slot .unity-scroll-view__content-container {
+    flex-grow: 1;
+}
+
+.dbg-input-slot .dbg-input-card {
+    flex-grow: 1;
+    margin: 0;
+}
+
+.dbg-input-card {
+    margin: 4px 8px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    border-width: 1px;
+    border-color: var(--dbg-border-faint);
+    background-color: var(--dbg-raised);
+}
+
+.dbg-input-card--draft {
+    border-color: var(--dbg-border);
+    background-color: rgba(0, 0, 0, 0);
+}
+
+.dbg-input-card__header {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-bottom: 4px;
+}
+
+.dbg-input-card__header > .unity-label {
+    margin: 0 10px 0 0;
+    padding: 0;
+}
+
+.dbg-input-card__time,
+.dbg-input-card__call {
+    font-size: var(--dbg-font-s);
+    color: var(--dbg-text-dim);
+    -unity-font-definition: url("project://database/Packages/io.github.trivas-xr.agent/Runtime/UI/Fonts/JetBrainsMono-Regular.ttf?fileID=12800000&guid=3a305076ecab24a44a6a7b0bd9d9a1ea&type=3#JetBrainsMono-Regular");
+}
+
+.dbg-input-card__id {
+    -unity-font-style: bold;
+}
+
+.dbg-input-card__state {
+    font-size: var(--dbg-font-s);
+    -unity-font-style: bold;
+    color: var(--dbg-text-dim);
+}
+
+.dbg-input-card--sent .dbg-input-card__state {
+    color: var(--dbg-user);
+}
+
+.dbg-input-card--answered .dbg-input-card__state {
+    color: var(--dbg-ok);
+}
+
+.dbg-input-card--interrupted .dbg-input-card__state {
+    color: var(--dbg-warn);
+}
+
+.dbg-input-card__empty {
+    margin: 0;
+    padding: 0;
+    font-size: var(--dbg-font-s);
+    color: var(--dbg-text-dim);
+}
+
+.dbg-input-row {
+    flex-direction: row;
+    align-items: flex-start;
+    padding: 2px 0;
+}
+
+.dbg-input-row > .unity-label {
+    margin: 0;
+    padding: 0;
+}
+
+.dbg-input-row__kind {
+    flex-shrink: 0;
+    width: 110px;
+    -unity-font-style: bold;
+    color: var(--dbg-user);
+}
+
+.dbg-input-row__where {
+    flex-shrink: 0;
+    width: 90px;
+    color: var(--dbg-text-dim);
+}
+
+.dbg-input-row__data {
+    flex-grow: 1;
+    flex-shrink: 1;
+    white-space: normal;
+    font-size: var(--dbg-font-s);
+    color: var(--dbg-text);
+    -unity-font-definition: url("project://database/Packages/io.github.trivas-xr.agent/Runtime/UI/Fonts/JetBrainsMono-Regular.ttf?fileID=12800000&guid=3a305076ecab24a44a6a7b0bd9d9a1ea&type=3#JetBrainsMono-Regular");
+}
+
+.dbg-input-row--dropped .dbg-input-row__kind,
+.dbg-input-row--dropped .dbg-input-row__where {
+    color: var(--dbg-warn);
+}
+
+.dbg-input-row--dropped .dbg-input-row__data {
+    color: var(--dbg-text-dim);
 }
