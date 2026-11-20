@@ -15,7 +15,7 @@ namespace TrIVA.Tests
     /// <summary>
     /// Sends RTVI events from a fake backend to an AgentStateMachine and checks the states it goes through and the changes it announces.
     /// </summary>
-    [PrebuildSetup(typeof(XrOffDuringTests)), PostBuildCleanup(typeof(XrOffDuringTests))]
+    [PrebuildSetup(typeof(QuietTestRun)), PostBuildCleanup(typeof(QuietTestRun))]
     public class AgentStateMachineTests
     {
         private const float LongTimeout = 60f;

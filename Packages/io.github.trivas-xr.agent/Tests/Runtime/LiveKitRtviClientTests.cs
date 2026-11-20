@@ -15,7 +15,7 @@ namespace TrIVA.Tests
     /// <summary>
     /// Checks the RTVI client's bot-ready state and its custom client messages against a fake backend.
     /// </summary>
-    [PrebuildSetup(typeof(XrOffDuringTests)), PostBuildCleanup(typeof(XrOffDuringTests))]
+    [PrebuildSetup(typeof(QuietTestRun)), PostBuildCleanup(typeof(QuietTestRun))]
     public class LiveKitRtviClientTests
     {
         private LiveKitRtviClient _client;

@@ -15,7 +15,7 @@ namespace TrIVA.Tests
     /// <summary>
     /// Checks how ReferableObject assigns and looks up IDs and builds its description.
     /// </summary>
-    [PrebuildSetup(typeof(XrOffDuringTests)), PostBuildCleanup(typeof(XrOffDuringTests))]
+    [PrebuildSetup(typeof(QuietTestRun)), PostBuildCleanup(typeof(QuietTestRun))]
     public class ReferableObjectTests
     {
         private readonly List<GameObject> _created = new();

@@ -24,7 +24,7 @@ namespace TrIVA.Tests
     /// <summary>
     /// Aims a near-far interactor at objects in front of it and checks the pointing messages a fake backend receives.
     /// </summary>
-    [PrebuildSetup(typeof(XrOffDuringTests)), PostBuildCleanup(typeof(XrOffDuringTests))]
+    [PrebuildSetup(typeof(QuietTestRun)), PostBuildCleanup(typeof(QuietTestRun))]
     public class PointingReporterTests
     {
         private const float Dwell = 0.4f;

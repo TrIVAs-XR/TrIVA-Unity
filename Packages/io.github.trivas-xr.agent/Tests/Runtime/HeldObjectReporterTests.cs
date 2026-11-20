@@ -19,7 +19,7 @@ namespace TrIVA.Tests
     /// <summary>
     /// Grabs objects with two hand interactors through the interaction manager and checks the held messages a fake backend receives.
     /// </summary>
-    [PrebuildSetup(typeof(XrOffDuringTests)), PostBuildCleanup(typeof(XrOffDuringTests))]
+    [PrebuildSetup(typeof(QuietTestRun)), PostBuildCleanup(typeof(QuietTestRun))]
     public class HeldObjectReporterTests
     {
         private readonly List<GameObject> _created = new();
