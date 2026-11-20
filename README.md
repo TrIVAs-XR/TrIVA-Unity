@@ -50,7 +50,7 @@ The agent code inside `Packages/io.github.trivas-xr.agent/`:
 
 | Folder | Contents |
 |---|---|
-| `Runtime/Connection/` | LiveKit connection with retry, agent audio playback, microphone publishing with push-to-talk and mute, publishing the participant's view, the RTVI message channel |
+| `Runtime/Connection/` | LiveKit connection with retry, agent audio playback, microphone publishing with push-to-talk and mute (or an audio source in its place through `PublishFrom`), publishing the participant's view, the RTVI message channel |
 | `Runtime/Agent/` | Agent state machine, behaviour driver (animation and gaze), blinking, lip sync binding, face rig profile, random animation variants, foot planting, looking and pointing at scene targets |
 | `Runtime/Inputs/` | Participant inputs sent to the backend: what each hand holds and what each hand points at; the vision camera's lagged head follower |
 | `Runtime/Debugging/` | World-space debug panel, with a vision preview, and an Editor-only recorder for RTVI messages |

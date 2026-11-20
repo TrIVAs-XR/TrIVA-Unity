@@ -10,7 +10,7 @@ namespace TrIVA.Connection
 {
     /// <summary>
     /// Captures the local microphone and publishes it to the connected LiveKit room, either always on or gated by an
-    /// optional push-to-talk input action, and can be muted manually. Captures from the system default device unless another device is selected.
+    /// optional push-to-talk input action, and can be muted manually. Captures from the system default device unless another device is selected, or publishes an audio source in its place when told to.
     /// </summary>
     [RequireComponent(typeof(LiveKitConnector))]
     public class LiveKitMicrophonePublisher : MonoBehaviour
@@ -30,7 +30,10 @@ namespace TrIVA.Connection
 
         private Room _room;
         private GameObject _sourceObject;
-        private MicrophoneSource _source;
+        private RtcAudioSource _source;
+        private AudioSource _voiceSource;
+        private RtcAudioSource _pendingSource;
+        private GameObject _pendingSourceObject;
         private LocalAudioTrack _track;
         private bool _trackMuted;
         private bool _publishing;
@@ -47,7 +50,7 @@ namespace TrIVA.Connection
         public bool Muted { get; private set; }
 
         /// <summary>
-        /// RMS level (0 to 1) of the latest raw microphone buffer, before audio processing; 0 while no source is live.
+        /// RMS level (0 to 1) of the latest raw buffer of the published microphone or audio source, before audio processing; 0 while no source is live.
         /// </summary>
         public float InputLevel => _source != null ? Volatile.Read(ref _inputLevel) : 0f;
 
@@ -88,7 +91,20 @@ namespace TrIVA.Connection
                 PlayerPrefs.SetString(DevicePrefsKey, device);
             PlayerPrefs.Save();
 
-            if (_room != null && !_publishing)
+            if (_room != null && !_publishing && !_voiceSource)
+                StartCoroutine(PublishSelectedDevice(_room));
+        }
+
+        /// <summary>
+        /// Publishes the audio source as the participant's voice instead of the microphone, such as a simulated participant's, or the microphone again for null; republishes the track if one is live. The source must keep a clip playing, silence between utterances, or the track carries no audio.
+        /// </summary>
+        public void PublishFrom(AudioSource source)
+        {
+            if (ReferenceEquals(source, _voiceSource))
+                return;
+
+            _voiceSource = source;
+            if (_room != null && !_publishing && gameObject.activeInHierarchy)
                 StartCoroutine(PublishSelectedDevice(_room));
         }
 
@@ -120,19 +136,23 @@ namespace TrIVA.Connection
         }
 
         /// <summary>
-        /// Publishes the selected device, replacing any live track, and repeats while the selection changed during publishing.
+        /// Publishes the audio source told to, or else the selected device, replacing any live track, and repeats while either selection changed during publishing.
         /// </summary>
         private IEnumerator PublishSelectedDevice(Room room)
         {
             _publishing = true;
             string device;
+            AudioSource voiceSource;
             do
             {
                 device = Device;
+                voiceSource = _voiceSource;
                 if (_track != null)
                     yield return Unpublish(room);
-                yield return Publish(room, device);
-            } while (_room == room && device != Device);
+                if (_room != room)
+                    yield break;
+                yield return Publish(room, device, voiceSource);
+            } while (_room == room && (!ReferenceEquals(voiceSource, _voiceSource) || (!voiceSource && device != Device)));
 
             if (_room == room)
                 _publishing = false;
@@ -152,43 +172,58 @@ namespace TrIVA.Connection
         }
 
         /// <summary>
-        /// Requests microphone permission, creates the processed microphone source for the device (null for system default) and publishes it as the room's microphone track.
+        /// Publishes the audio source if there is one, otherwise requests microphone permission and creates the processed microphone source for the device (null for system default), as the room's microphone track.
         /// </summary>
-        private IEnumerator Publish(Room room, string device)
+        private IEnumerator Publish(Room room, string device, AudioSource voiceSource)
         {
             if (PushToTalk && !PushToTalkAction)
                 Debug.LogError("Push-to-talk is enabled but no input action is assigned, microphone will stay muted.");
 
-            yield return Application.RequestUserAuthorization(UserAuthorization.Microphone);
-            if (!Application.HasUserAuthorization(UserAuthorization.Microphone))
+            RtcAudioSource source;
+            GameObject sourceObject = null;
+            string deviceLabel;
+            if (voiceSource)
             {
-                Debug.LogError("Microphone permission denied, not publishing microphone.");
-                yield break;
+                source = new BasicAudioSource(voiceSource, RtcAudioSourceType.AudioSourceMicrophone);
+                deviceLabel = $"audio source {voiceSource.name}";
             }
-
-            if (Microphone.devices.Length == 0)
+            else
             {
-                Debug.LogError("No microphone device found, not publishing microphone.");
-                yield break;
+                yield return Application.RequestUserAuthorization(UserAuthorization.Microphone);
+                if (_room != room)
+                    yield break;
+                if (!Application.HasUserAuthorization(UserAuthorization.Microphone))
+                {
+                    Debug.LogError("Microphone permission denied, not publishing microphone.");
+                    yield break;
+                }
+
+                if (Microphone.devices.Length == 0)
+                {
+                    Debug.LogError("No microphone device found, not publishing microphone.");
+                    yield break;
+                }
+
+                if (!IsAvailable(device))
+                {
+                    Debug.LogWarning($"Microphone '{device}' not found, using system default.");
+                    device = null;
+                }
+
+                deviceLabel = device ?? "system default";
+                sourceObject = new($"Microphone: {deviceLabel}");
+                sourceObject.transform.SetParent(transform, false);
+
+                AudioProcessingOptions processing = new()
+                {
+                    EchoCancellation = EchoCancellation,
+                    NoiseSuppression = NoiseSuppression,
+                    AutoGainControl = AutoGainControl
+                };
+                source = new MicrophoneSource(device, sourceObject, processing);
             }
-
-            if (!IsAvailable(device))
-            {
-                Debug.LogWarning($"Microphone '{device}' not found, using system default.");
-                device = null;
-            }
-
-            string deviceLabel = device ?? "system default";
-            GameObject sourceObject = new($"Microphone: {deviceLabel}");
-            sourceObject.transform.SetParent(transform, false);
-
-            AudioProcessingOptions processing = new()
-            {
-                EchoCancellation = EchoCancellation,
-                NoiseSuppression = NoiseSuppression,
-                AutoGainControl = AutoGainControl
-            };
-            MicrophoneSource source = new(device, sourceObject, processing);
+            _pendingSource = source;
+            _pendingSourceObject = sourceObject;
             LocalAudioTrack track = LocalAudioTrack.CreateAudioTrack(TrackName, source, room);
 
             TrackPublishOptions options = new()
@@ -199,11 +234,17 @@ namespace TrIVA.Connection
             PublishTrackInstruction publish = room.LocalParticipant.PublishTrack(track, options);
             yield return publish;
 
+            if (_pendingSource != source)
+                yield break;
+            _pendingSource = null;
+            _pendingSourceObject = null;
+
             if (publish.IsError || _room != room)
             {
                 Debug.LogError("Failed to publish microphone track.");
                 source.Dispose();
-                Destroy(sourceObject);
+                if (sourceObject)
+                    Destroy(sourceObject);
                 yield break;
             }
 
@@ -259,7 +300,7 @@ namespace TrIVA.Connection
         }
 
         /// <summary>
-        /// Drops the room reference and releases the microphone source.
+        /// Drops the room reference and releases the microphone source, also one whose publish is still under way.
         /// </summary>
         private void TearDown()
         {
@@ -269,7 +310,27 @@ namespace TrIVA.Connection
                 _room = null;
             }
 
+            _publishing = false;
+            ReleasePendingSource();
             ReleaseSource();
+        }
+
+        /// <summary>
+        /// Disposes the source of a publish still under way and destroys its host object.
+        /// </summary>
+        private void ReleasePendingSource()
+        {
+            if (_pendingSource != null)
+            {
+                _pendingSource.Dispose();
+                _pendingSource = null;
+            }
+
+            if (_pendingSourceObject)
+            {
+                Destroy(_pendingSourceObject);
+                _pendingSourceObject = null;
+            }
         }
 
         /// <summary>
@@ -280,8 +341,15 @@ namespace TrIVA.Connection
             if (_source != null)
             {
                 _source.AudioRead -= OnAudioRead;
-                _source.Stop();
-                _source.Dispose();
+                try
+                {
+                    _source.Stop();
+                    _source.Dispose();
+                }
+                catch (MissingReferenceException)
+                {
+                    // The published audio source was destroyed first; its finalizer releases the native source.
+                }
                 _source = null;
             }
 
